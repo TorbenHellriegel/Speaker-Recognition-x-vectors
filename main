@@ -1,0 +1,114 @@
+#! .\bchlr-venv\scripts\python.exe
+
+# import sys
+# import math
+# import torch.nn as nn
+# import torch.nn.functional as F
+# from torch.utils.data import Dataset, DataLoader
+# import torchvision
+# import torchvision.transforms as transforms
+# from sklearn import datasets
+# from sklearn.preprocessing import StandardScaler
+# from sklearn.model_selection import train_test_split
+import os
+import glob
+import torch
+import librosa
+import numpy as np
+from statistics import mean
+from scipy.io import wavfile
+import matplotlib.pyplot as plt
+#import pandas as pd
+from python_speech_features import mfcc, logfbank
+
+def plot_signals(signals):
+    fig, axes = plt.subplot(nrows=2, nclos=5, sharex=False,
+                            sharey=True, figsize=(20,5))
+    fig.subtitle('Time Series', size=16)
+    i = 0
+    for x in range(2):
+        for y in range(5):
+            axes[x,y].set_title(list(signals.keys())[i])
+            axes[x,y].plot(list(signals.values())[i])
+            axes[x,y].get_xaxis().set_visable(False)
+            axes[x,y].get_yaxis().set_visable(False)
+            i += 1
+
+def plot_fft(fft):
+    fig, axes = plt.subplot(nrows=2, nclos=5, sharex=False,
+                            sharey=True, figsize=(20,5))
+    fig.subtitle('Fourier Transforms', size=16)
+    i = 0
+    for x in range(2):
+        for y in range(5):
+            data = list(fft.values())[i]
+            Y, freq = data[0], data[1]
+            axes[x,y].set_title(list(fft.keys())[i])
+            axes[x,y].plot(freq, Y)
+            axes[x,y].get_xaxis().set_visable(False)
+            axes[x,y].get_yaxis().set_visable(False)
+            i += 1
+
+def plot_fbank(fbank):
+    fig, axes = plt.subplot(nrows=2, nclos=5, sharex=False,
+                            sharey=True, figsize=(20,5))
+    fig.subtitle('Filter Bank Coefficients', size=16)
+    i = 0
+    for x in range(2):
+        for y in range(5):
+            axes[x,y].set_title(list(fbank.keys())[i])
+            axes[x,y].imshow(list(fbank.values())[i],
+                    cmap='hot', interpolation='nearest')
+            axes[x,y].get_xaxis().set_visable(False)
+            axes[x,y].get_yaxis().set_visable(False)
+            i += 1
+
+def plot_mfccs(mfccs):
+    fig, axes = plt.subplot(nrows=2, nclos=5, sharex=False,
+                            sharey=True, figsize=(20,5))
+    fig.subtitle('Mel Frequency Cepstrum Coefficients', size=16)
+    i = 0
+    for x in range(2):
+        for y in range(5):
+            axes[x,y].set_title(list(mfccs.keys())[i])
+            axes[x,y].imshow(list(mfccs.values())[i],
+                    cmap='hot', interpolation='nearest')
+            axes[x,y].get_xaxis().set_visable(False)
+            axes[x,y].get_yaxis().set_visable(False)
+            i += 1
+
+# LOADING DATA
+# Create array with [[filename], [instrument], [length]]
+df = np.transpose([[os.path.basename(f) for f in glob.glob('data\wavfiles\*\*.wav')],
+        [os.path.basename(os.path.dirname(f)) for f in glob.glob('data\wavfiles\*\*.wav')],
+        [0 for f in glob.glob('data\wavfiles\*\*.wav')]])
+
+# Calculate the length in [[filename], [instrument], [length]]
+# Also calculate sampling rate
+sr = 0
+for i in range(len(df)):
+    rate, signal = wavfile.read('data/wavfiles/' + df[i, 1] + "/" + df[i, 0])
+    df[i, 2] = signal.shape[0]/rate
+    sr = rate
+
+# Calculate the distrubution for each instrument (mean leangth)
+classes = list(np.unique(df[:, 1]))
+class_dist = np.zeros_like(classes)
+for i, c in enumerate(classes):
+    class_list = np.where(df[:, 1] == c)
+    class_length = [l for l in df[class_list, 2]]
+    class_length = [float(l) for l in class_length[0]]
+    class_dist[i] = mean(class_length)
+
+# Plot the class distribution data
+fig, ax = plt.subplots()
+ax.set_title('Class Distribution')
+ax.pie(class_dist, labels=classes, autopct='%1.1f%%', shadow=False, startangle=90)
+ax.axis('equal')
+plt.show()
+
+# Plot signals in the kfjnskbsbskbfksdb domain
+for i in range(len(classes)):
+    wav_file = df[i*30, 1] + '/' + df[i*30, 0]
+    signal, rate = librosa.load('data/wavfiles/' + wav_file, sr=sr)
+    print(wav_file)
