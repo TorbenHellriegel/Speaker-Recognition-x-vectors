@@ -19,7 +19,7 @@ import numpy as np
 from statistics import mean
 from scipy.io import wavfile
 import matplotlib.pyplot as plt
-#import pandas as pd
+import pandas as pd
 from python_speech_features import mfcc, logfbank
 
 # Random copied visualization funktions
@@ -86,15 +86,29 @@ def calc_fft(y, rate):
     Y = abs(np.fft.rfft(y)/n) #/n for normalization
     return (Y, freq)
 
+# Calculate an envelope
+def envelope(y, rate, threshhold):
+    mask = []
+    y = pd.Series(y).apply(np.abs)
+    y_mean = y.rolling(window=int(rate/10), min_periods=1, center=True).mean
+    for mean in y_mean:
+        if mean > threshhold:
+            mask.append(True)
+        else:
+            mask.append(False)
+    return mask
+
 
 
 # LOADING DATA ----------------------------------------------------------------------------------------------------
-# Create array with [[filename], [instrument], [length]]
-df = np.transpose([[os.path.basename(f) for f in glob.glob('data\wavfiles\*\*.wav')], #get all files in all wavefile directorys
-        [os.path.basename(os.path.dirname(f)) for f in glob.glob('data\wavfiles\*\*.wav')], #get the names of all the corresponding directories
-        [0 for f in glob.glob('data\wavfiles\*\*.wav')]]) #add in an array of extra 0 to later fill with length values
-
-# Calculate the length in [[filename], [instrument], [length]]
+# Create array with [[filename], [instrument], [length], [full path]]
+glob = glob.glob('data\wavfiles\*\*.wav')
+df = np.transpose([[os.path.basename(f) for f in glob], #get all files in all wavefile directorys
+        [os.path.basename(os.path.dirname(f)) for f in glob], #get the names of all the corresponding directories
+        [0 for f in glob], #add in an array of extra 0 to later fill with length values
+        [f for f in glob]]) #get all paths
+        
+# Calculate the length in [[filename], [instrument], [length], [full path]]
 # Also calculate sampling rate
 sr = 0
 for i in range(len(df)):
@@ -128,6 +142,8 @@ mfccs = {}
 for i, c in enumerate(classes):
     wav_file = 'data/wavfiles/' + df[i*30, 1] + '/' + df[i*30, 0] #put together the full wav file path for 1 sample from each class
     signal, rate = librosa.load(wav_file, sr=sr) #load the wav file (ibrosa.load normalizes the data between (-1, 1))
+    #mask = envelope(signal, rate, 0.0005) #get a mask to get rid of "dead space" in the signal
+    #signal = signal[mask] #apply mask to sigan (this likely wont be neccesary for speech data)
     signals[c] = signal #add signal to dictionary with key c (this won't work with more than 1 sample for each class)
     fft[c] = calc_fft(signal, rate) #calc fft
 
@@ -145,5 +161,11 @@ plot_fbank(fbank)
 plt.draw()
 plot_mfccs(mfccs)
 plt.draw()
+
+if len(os.listdir('data/clean')) == 0:
+    for f, path in zip(df[:, 0], df[:, 3]):
+        signal, rate = librosa.load(path, sr=16000) #downsample because high frequencies aren't needed
+        #mask = envelope(signal, rate, 0.0005) #TODO do all data preprocessing here
+        wavfile.write(filename='data/clean/'+f, rate=rate, data=signal) #give the preprocessed signals here
 
 #plt.show()
