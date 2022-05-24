@@ -1,19 +1,8 @@
 #! .\bchlr-venv\scripts\python.exe
 
-# import sys
-# import math
-# import torch.nn as nn
-# import torch.nn.functional as F
-# from torch.utils.data import Dataset, DataLoader
-# import torchvision
-# import torchvision.transforms as transforms
-# from sklearn import datasets
-# from sklearn.preprocessing import StandardScaler
-# from sklearn.model_selection import train_test_split
 from math import ceil
 import os
 import glob
-import torch
 import librosa
 import numpy as np
 from statistics import mean
@@ -168,4 +157,4 @@ if len(os.listdir('data/clean')) == 0:
         #mask = envelope(signal, rate, 0.0005) #TODO do all data preprocessing here
         wavfile.write(filename='data/clean/'+f, rate=rate, data=signal) #give the preprocessed signals here
 
-#plt.show()
+plt.show()
