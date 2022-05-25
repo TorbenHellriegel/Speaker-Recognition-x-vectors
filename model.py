@@ -16,11 +16,15 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from python_speech_features import mfcc
 
+def to_categorical(y, num_classes):
+    """ 1-hot encodes a tensor """
+    return np.eye(num_classes, dtype='uint8')[y]
+
 def build_rand_feat():
     X = []
     y = []
     _min, _max = float('inf'), -float('inf')
-    for _ in range(1): #n_samples
+    for _ in range(10): #n_samples
         rand_class = np.random.choice(classes, p=prob_dist)
         file = np.random.choice([sample for i, sample in enumerate(df[:, 0]) if df[i, 1] == rand_class])
         rate, wav, = wavfile.read('data/clean/' + file)
@@ -31,24 +35,15 @@ def build_rand_feat():
         _max = max(np.amax(X_sample), _max)
         X.append(X_sample if config.mode == 'conv' else X_sample.T) #make sure the data has the format that the nn model needs
         y.append(classes.index(rand_class))
-
-        print("rand_class= ", rand_class)
-        print("file= ",  file)
-        print("rand_index= ",  rand_index)
-        print("sample= ",  sample)
-        print("samplelength= ",  sample.shape)
-        #print("X_sample= ",  X_sample)
-        print("min= ",  _min)
-        print("max= ",  _max)
-    print("y before: ", y)
     X, y = np.array(X), np.array(y) #no sure if this is such a good idea
-    print("y after: ", y)
     X = (X - _min) / (_max - _min)
     if config.mode == 'conv':
         X = X.reshape(X.shape[0], X.shape[1], X.shape[2], 1)
     elif config.mode == 'time':
         X = X.reshape(X.shape[0], X.shape[1], X.shape[2])
-    y = F.one_hot(torch.from_numpy(y), num_classes=10)
+    y = torch.from_numpy(y).type(torch.int64)
+    y = F.one_hot(y, num_classes=10)
+    print(y)
     return X, y
 
 # TODO ?
