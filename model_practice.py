@@ -5,6 +5,7 @@ import os
 import glob
 import numpy as np
 from statistics import mean
+from sklearn.utils import compute_class_weight
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -16,35 +17,37 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from python_speech_features import mfcc
 
-def to_categorical(y, num_classes):
-    """ 1-hot encodes a tensor """
-    return np.eye(num_classes, dtype='uint8')[y]
-
 def build_rand_feat():
     X = []
     y = []
-    _min, _max = float('inf'), -float('inf')
-    for _ in range(10): #n_samples
+    global_min = float('inf')
+    global_max = -float('inf')
+    for _ in range(n_samples):
         rand_class = np.random.choice(classes, p=prob_dist)
         file = np.random.choice([sample for i, sample in enumerate(df[:, 0]) if df[i, 1] == rand_class])
-        rate, wav, = wavfile.read('data/clean/' + file)
+        rate, wav = wavfile.read('data/clean/' + file)
         rand_index = np.random.randint(0, wav.shape[0] - config.step)
         sample = wav[rand_index:rand_index+config.step]
         X_sample = mfcc(sample, rate, numcep=config.nfeat, nfilt=config.nfilt, nfft=config.nfft).T
-        _min = min(np.amin(X_sample), _min)
-        _max = max(np.amax(X_sample), _max)
+        global_min = min(np.amin(X_sample), global_min)
+        global_max = max(np.amax(X_sample), global_max)
         X.append(X_sample if config.mode == 'conv' else X_sample.T) #make sure the data has the format that the nn model needs
         y.append(classes.index(rand_class))
     X, y = np.array(X), np.array(y) #no sure if this is such a good idea
-    X = (X - _min) / (_max - _min)
+    X = (X - global_min) / (global_max - global_min)
     if config.mode == 'conv':
         X = X.reshape(X.shape[0], X.shape[1], X.shape[2], 1)
     elif config.mode == 'time':
         X = X.reshape(X.shape[0], X.shape[1], X.shape[2])
-    y = torch.from_numpy(y).type(torch.int64)
-    y = F.one_hot(y, num_classes=10)
-    print(y)
-    return X, y
+    y_hot = torch.from_numpy(y).type(torch.int64)
+    y_hot = F.one_hot(y_hot, num_classes=10)
+    return X, y, y_hot
+
+def get_conv_model():
+    return 1
+    
+def get_recurrent_model():
+    return 1
 
 # TODO ?
 class Config:
@@ -91,11 +94,21 @@ ax.pie(class_dist, labels=classes, autopct='%1.1f%%', shadow=False, startangle=9
 ax.axis('equal')
 #plt.show()
 
-# TODO ?
+# Set which kind of nn to use. for practice it's 'conv' or 'time' for actual use it's 'tdnn'
 config = Config(mode='conv')
 
 # TODO ?
 if config.mode == 'conv':
-    X, y = build_rand_feat()
+    X, y, y_hot = build_rand_feat()
+    input_shape = (X.shape[1], X.shape[2], 1)
+    model = get_conv_model()
+
 elif config.mode == 'time':
-    X, y = build_rand_feat()
+    X, y, y_hot = build_rand_feat()
+    input_shape = (X.shape[1], X.shape[2])
+    model = get_recurrent_model()
+
+class_weight = compute_class_weight('balanced', np.nique(y), y)
+
+#model.fit(X, y_hot, epochs=10, batch_size=32, shuffle=True, class_weight=class_weight)
+

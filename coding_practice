@@ -13,7 +13,6 @@ from sklearn import datasets
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
-from tqdm import tqdm
 
 # TensorBoard add-on for mnist
 from torch.utils.tensorboard import SummaryWriter
