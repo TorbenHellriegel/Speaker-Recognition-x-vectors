@@ -43,8 +43,33 @@ def build_rand_feat():
     y_hot = F.one_hot(y_hot, num_classes=10)
     return X, y, y_hot
 
-def get_conv_model():
-    return 1
+class conv_model(nn.Module):   
+    def __init__(self):
+        super(conv_model, self).__init__()
+
+        self.cnn_layers = nn.Sequential(
+            # Defining a 2D convolution layer
+            nn.Conv2d(1, 4, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(4),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            # Defining another 2D convolution layer
+            nn.Conv2d(4, 4, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(4),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+        )
+
+        self.linear_layers = nn.Sequential(
+            nn.Linear(4 * 7 * 7, 10)
+        )
+
+    # Defining the forward pass    
+    def forward(self, x):
+        x = self.cnn_layers(x)
+        x = x.view(x.size(0), -1)
+        x = self.linear_layers(x)
+        return x
     
 def get_recurrent_model():
     return 1
@@ -101,7 +126,9 @@ config = Config(mode='conv')
 if config.mode == 'conv':
     X, y_flat, y_hot = build_rand_feat()
     input_shape = (X.shape[1], X.shape[2], 1)
-    model = get_conv_model()
+    model = conv_model()
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.07)
+    criterion = nn.CrossEntropyLoss()
 
 elif config.mode == 'time':
     X, y_flat, y_hot = build_rand_feat()
@@ -109,7 +136,7 @@ elif config.mode == 'time':
     model = get_recurrent_model()
 
 # Calculate a weight value for each class. The lower the number of samples from that class the higer the value
-class_weight = compute_class_weight('balanced', classes=np.unique(y_flat), y=y_flat)
+#class_weight = compute_class_weight('balanced', classes=np.unique(y_flat), y=y_flat)
+#model.fit(X, y_hot, epochs=10, batch_size=32, shuffle=True, class_weight=class_weight)
 
-model.fit(X, y_hot, epochs=10, batch_size=32, shuffle=True, class_weight=class_weight)
-
+print(model)
