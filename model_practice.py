@@ -140,3 +140,37 @@ elif config.mode == 'time':
 #model.fit(X, y_hot, epochs=10, batch_size=32, shuffle=True, class_weight=class_weight)
 
 print(model)
+
+def train(epoch):
+    model.train()
+    tr_loss = 0
+    # getting the training set
+    x_train, y_train = torch.autograd.Variable(torch.from_numpy(X[0])), torch.autograd.Variable(torch.from_numpy(y_flat))
+
+    # clearing the Gradients of the model parameters
+    optimizer.zero_grad()
+    
+    # prediction for training and validation set
+    output_train = model(x_train)
+
+    # computing the training and validation loss
+    loss_train = criterion(output_train, y_train)
+    train_losses.append(loss_train)
+
+    # computing the updated weights of all the model parameters
+    loss_train.backward()
+    optimizer.step()
+    tr_loss = loss_train.item()
+    if epoch%2 == 0:
+        # printing the validation loss
+        print('Epoch : ',epoch+1, '\t', 'loss :', loss_train)
+
+# defining the number of epochs
+n_epochs = 6
+# empty list to store training losses
+train_losses = []
+# empty list to store validation losses
+val_losses = []
+# training the model
+for epoch in range(n_epochs):
+    train(epoch)
