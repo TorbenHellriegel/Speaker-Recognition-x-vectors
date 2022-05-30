@@ -83,9 +83,9 @@ for i, c in enumerate(classes):
     class_dist[i] = mean(class_length) #calculate the mean to get the class distribution
 
 # TODO what are we doing here?
-n_samples = 2 * int(df[:, 2].astype(float).sum()/0.1)
+n_samples = 2 * int(df[:, 2].astype(float).sum()/0.1  /  100) #TODO dont decrease sample number
 prob_dist = class_dist.astype(float) / class_dist.astype(float).sum()
-choices = np.random.choice(classes, p=prob_dist)
+#print(np.random.choice(classes, p=prob_dist))
 
 # Plot the class distribution data
 fig, ax = plt.subplots()
@@ -94,21 +94,22 @@ ax.pie(class_dist, labels=classes, autopct='%1.1f%%', shadow=False, startangle=9
 ax.axis('equal')
 #plt.show()
 
-# Set which kind of nn to use. for practice it's 'conv' or 'time' for actual use it's 'tdnn'
+# Set which kind of nn to use. For practice it's 'conv' or 'time' for actual use it's 'tdnn'
 config = Config(mode='conv')
 
 # TODO ?
 if config.mode == 'conv':
-    X, y, y_hot = build_rand_feat()
+    X, y_flat, y_hot = build_rand_feat()
     input_shape = (X.shape[1], X.shape[2], 1)
     model = get_conv_model()
 
 elif config.mode == 'time':
-    X, y, y_hot = build_rand_feat()
+    X, y_flat, y_hot = build_rand_feat()
     input_shape = (X.shape[1], X.shape[2])
     model = get_recurrent_model()
 
-class_weight = compute_class_weight('balanced', np.nique(y), y)
+# Calculate a weight value for each class. The lower the number of samples from that class the higer the value
+class_weight = compute_class_weight('balanced', classes=np.unique(y_flat), y=y_flat)
 
-#model.fit(X, y_hot, epochs=10, batch_size=32, shuffle=True, class_weight=class_weight)
+model.fit(X, y_hot, epochs=10, batch_size=32, shuffle=True, class_weight=class_weight)
 
