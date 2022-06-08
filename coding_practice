@@ -348,7 +348,7 @@ print(features)
 print(type(features), type(lables))'''
 
 #Practical example MNIST classification----------------------------------------------------------------------
-'''
+
 # Push calculation to gpu if possible
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -483,7 +483,7 @@ with torch.no_grad():
     #sys.exit()
 
     accuracy = 100.0 * n_correct / n_samples
-    print(f'accuracy = {accuracy}')'''
+    print(f'accuracy = {accuracy}')
 
 #Practical example CIFAR10 classification----------------------------------------------------------------------
 '''
@@ -604,6 +604,7 @@ with torch.no_grad():
 #   - backward pass: gradients
 #   - update weights
 
+'''
 # Push calculation to gpu if possible
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -773,4 +774,4 @@ with torch.no_grad():
     #sys.exit()
 
     accuracy = 100.0 * n_correct / n_samples
-    print(f'accuracy = {accuracy}')
+    print(f'accuracy = {accuracy}')'''

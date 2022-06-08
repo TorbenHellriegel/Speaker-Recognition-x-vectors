@@ -23,25 +23,57 @@ class Dataset(Dataset):
         self.n_samples = 0
 
     # Returns the sample at the given index with the predefined transform
-    # Can be called as dataset[i] and should work with complex array manipulation
+    # Can be called as dataset[i]
     def __getitem__(self, index):
-        return torch.from_numpy(self.samples[index])
-
-    # Returns the number of samples
-    def __len__(self):
-        return self.n_samples
+        return torch.from_numpy(self.samples[index]), self.classes[index]
     
-    # Load the data and save all relevant info in arrays
+    # Load the training data and save all relevant info in arrays
     # TODO PREPROCESS DATA BEFORE THIS
-    def load_data(self):
+    def load_train_data(self):
         # Get the paths to all the data samples
         globs = glob.glob('data\wavfiles\*\*.wav')
+
+        # Get only the testing data samples
+        # TODO put training and testing data in different folders to make this step easier
+        for i, g in enumerate(globs):
+            if(i%2 == 0):
+                globs[int(i/2)] = globs[i]
+        globs = globs[:int(len(globs)/2)]
 
         # Get the filenames and class names from the paths
         self.filenames = np.array([os.path.basename(f) for f in globs])
         self.classes = np.array([os.path.basename(os.path.dirname(f)) for f in globs])
 
-        # 
+        # Gat the list of samples and the sampling rate
+        samples = []
+        rates = []
+        for g in globs:
+            rate, sample = wavfile.read(g, np.dtype)
+            samples.append(np.array(sample))
+            rates.append(rate)
+
+        self.samples = samples
+        self.sampling_rates = rates
+        self.n_samples = len(self.samples)
+    
+    # Load the testing data and save all relevant info in arrays
+    # TODO PREPROCESS DATA BEFORE THIS
+    def load_test_data(self):
+        # Get the paths to all the data samples
+        globs = glob.glob('data\wavfiles\*\*.wav')
+
+        # Get only the testing data samples
+        # TODO put training and testing data in different folders to make this step easier
+        for i, g in enumerate(globs):
+            if(i%2 == 1):
+                globs[int((i-1)/2)] = globs[i]
+        globs = globs[:int(len(globs)/2)]
+
+        # Get the filenames and class names from the paths
+        self.filenames = np.array([os.path.basename(f) for f in globs])
+        self.classes = np.array([os.path.basename(os.path.dirname(f)) for f in globs])
+
+        # Gat the list of samples and the sampling rate
         samples = []
         rates = []
         for g in globs:
@@ -53,10 +85,12 @@ class Dataset(Dataset):
         self.sampling_rates = rates
         self.n_samples = len(self.samples)
 
-class ToTensor:
-    def __call__(self, sample):
-        return torch.from_numpy(sample)
+train_dataset = Dataset()
+test_dataset = Dataset()
 
-dataset = Dataset()
+train_dataset.load_train_data()
+test_dataset.load_test_data()
 
-dataset.load_data()
+for train, test in zip(train_dataset, test_dataset):
+    print("train: ",  train)
+    print("test: ",  test)
