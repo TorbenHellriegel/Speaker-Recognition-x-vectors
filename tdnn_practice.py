@@ -8,6 +8,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 from scipy.io import wavfile
+from python_speech_features import mfcc
 
 # Push calculation to gpu if possible
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -63,6 +64,7 @@ class Dataset(Dataset):
         rates = []
         for g in globs:
             rate, sample = wavfile.read(g, np.dtype)
+            sample = mfcc(sample, rate, numcep=24, nfilt=26, nfft=512)
             samples.append(np.array(sample))
             rates.append(rate)
 
@@ -92,6 +94,7 @@ class Dataset(Dataset):
         rates = []
         for g in globs:
             rate, sample = wavfile.read(g, np.dtype)
+            sample = mfcc(sample, rate, numcep=24, nfilt=26, nfft=512) #TODO not hard coded also what are we doing here
             samples.append(np.array(sample))
             rates.append(rate)
 
@@ -151,8 +154,9 @@ class TDNN(nn.Module):
         
     def forward(self, x):
         x = self.time_context_layers(x)
-        x = self.pooling_layer(x)
-        x = self.segment_layers(x)
+        x = nn.Linear(1500, num_classes) #TODO change later
+        #x = self.pooling_layer(x)
+        #x = self.segment_layers(x)
         #x = self.softmax(x) #TODO use softmax? not if i use nn.CrossEntropyLoss()
         return x #TODO maybe also return seg6 and seg7 for the x-vector?
 
