@@ -127,6 +127,7 @@ celerybeat.pid
 env/
 venv/
 bchlr-venv/
+bachelor-venv/
 ENV/
 env.bak/
 venv.bak/
