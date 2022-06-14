@@ -2,6 +2,8 @@
 
 import os
 import glob
+import tqdm
+import math
 import numpy as np
 import torch
 import torch.nn as nn
@@ -14,13 +16,13 @@ from python_speech_features import mfcc
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Set important variables
-batch_size = 1
+batch_size = 100
 input_size = 24
 hidden_size = 512
 frames = 1 #TODO ?
 num_classes = 10
-learning_rate = 0.01
-num_epochs = 2
+learning_rate = 0.001
+num_epochs = 3
 
 # LOAD DATA
 
@@ -64,16 +66,21 @@ class Dataset(Dataset):
         # Gat the list of samples and the sampling rate
         samples = []
         rates = []
-        for g in globs:
+        classes = []
+        for i, g in enumerate(globs):
             rate, sample = wavfile.read(g, np.dtype)
-            rand_index = np.random.randint(0, sample.shape[0] - 1600)
-            sample = sample[rand_index:rand_index+1600]
-            sample = mfcc(sample, rate, numcep=input_size, nfilt=26, nfft=512)
-            samples.append(np.array(sample))
-            rates.append(rate)
+            clas = self.classes[i]
+            print("load train: ", g)
+            for i in range(math.floor(len(sample)/1600)-1):
+                small_sample = sample[i*1600:i*1600+1600]
+                small_sample = mfcc(small_sample, rate, numcep=input_size, nfilt=26, nfft=1103)
+                samples.append(np.array(small_sample))
+                rates.append(rate)
+                classes.append(clas)
 
         self.samples = samples
         self.sampling_rates = rates
+        self.classes = classes
         self.n_samples = len(self.samples)
     
     # Load the testing data and save all relevant info in arrays
@@ -97,16 +104,21 @@ class Dataset(Dataset):
         # Gat the list of samples and the sampling rate
         samples = []
         rates = []
-        for g in globs:
+        classes = []
+        for i, g in enumerate(globs):
             rate, sample = wavfile.read(g, np.dtype)
-            rand_index = np.random.randint(0, sample.shape[0] - 1600)
-            sample = sample[rand_index:rand_index+1600]
-            sample = mfcc(sample, rate, numcep=input_size, nfilt=26, nfft=512)
-            samples.append(np.array(sample))
-            rates.append(rate)
+            clas = self.classes[i]
+            print("load test: ", g)
+            for i in range(math.floor(len(sample)/1600)-1):
+                small_sample = sample[i*1600:i*1600+1600]
+                small_sample = mfcc(small_sample, rate, numcep=input_size, nfilt=26, nfft=1103)
+                samples.append(np.array(small_sample))
+                rates.append(rate)
+                classes.append(clas)
 
         self.samples = samples
         self.sampling_rates = rates
+        self.classes = classes
         self.n_samples = len(self.samples)
 
 # Make two datasets for training and testing with different samples
@@ -172,13 +184,18 @@ class TDNN(nn.Module):
         super(TDNN, self).__init__()
         self.input_size = input_size
         self.l1 = nn.Linear(input_size, hidden_size)
+        self.l2 = nn.Linear(hidden_size, hidden_size)
+        self.l3 = nn.Linear(hidden_size, num_classes)
         self.relu = nn.ReLU()
-        self.l2 = nn.Linear(hidden_size, num_classes)
     
     def forward(self, x):
         out = self.l1(x)
         out = self.relu(out)
         out = self.l2(out)
+        out = self.relu(out)
+        out = self.l2(out)
+        out = self.relu(out)
+        out = self.l3(out)
         return out
 
 model = TDNN(input_size, hidden_size, frames, num_classes).to(device)
@@ -197,7 +214,7 @@ n_total_steps = len(train_data_loader)
 for epoch in range(num_epochs):
     for i, (samples, labels) in enumerate(train_data_loader):
         # Reshape data
-        samples = samples
+        samples.requires_grad = True
         labels_hot = F.one_hot(labels, num_classes=10)
 
         # Forward pass
@@ -209,5 +226,5 @@ for epoch in range(num_epochs):
         loss.backward()
         optimizer.step()
 
-        if (i+1) % 50 == 0:
+        if (i+1) % 100 == 0:
             print(f'epoch {epoch+1} / {num_epochs}, step {i+1} / {n_total_steps}, loss = {loss.item():.4f}')
