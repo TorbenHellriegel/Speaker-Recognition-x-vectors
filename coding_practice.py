@@ -13,6 +13,7 @@ from sklearn import datasets
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 # TensorBoard add-on for mnist
 from torch.utils.tensorboard import SummaryWriter
@@ -415,7 +416,7 @@ running_correct = 0
 n_total_steps = len(train_data_loader)
 
 for epoch in range(num_epochs):
-    for i, (images, labels) in (enumerate(train_data_loader)):
+    for i, (images, labels) in tqdm(enumerate(train_data_loader)):
         # Reshape image data
         images = images.reshape(-1, 28*28).to(device)
         labels = labels.to(device)
