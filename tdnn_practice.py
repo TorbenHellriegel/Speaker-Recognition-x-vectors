@@ -22,7 +22,7 @@ hidden_size = 512
 frames = 1 #TODO ?
 num_classes = 10
 learning_rate = 0.001
-num_epochs = 3
+num_epochs = 1
 
 # LOAD DATA
 
@@ -137,9 +137,9 @@ test_data_loader = DataLoader(dataset=test_dataset, batch_size=batch_size, shuff
 
 # DEFINE NEURAL NETWORK
 
-class TDNNbroken(nn.Module):
+class TDNN(nn.Module):
     def __init__(self, input_size, hidden_size, frames, num_classes):
-        super(TDNNbroken, self).__init__()
+        super(TDNN, self).__init__()
 
         self.time_context_layers = nn.Sequential(
             nn.Linear(input_size, hidden_size), #TODO add time context somehow
@@ -153,50 +153,27 @@ class TDNNbroken(nn.Module):
             nn.Linear(hidden_size, 1500),
             nn.ReLU()
         )
-
-        self.pooling_layer = nn.Sequential(
-            nn.MaxPool2d(1500 * frames, 3000),
-            #nn.ReLU()
-        )
         
         self.segment_layers = nn.Sequential(
-            nn.Linear(3000, hidden_size),
+            nn.Linear(1500, hidden_size),
             nn.ReLU(),
-            nn.Linear(hidden_size, num_classes),
+            nn.Linear(hidden_size, hidden_size),
             nn.ReLU()
         )
 
-        self.softmax = nn.Sequential( #TODO use softmax? not if i use nn.CrossEntropyLoss()
-            nn.Softmax(), #TODO how to use softmax?
-            #nn.ReLU()
-        )
+        self.output = nn.Linear(hidden_size, num_classes)
+
+        self.softmax = nn.Softmax() #TODO how to use softmax? #TODO use softmax? not if i use nn.CrossEntropyLoss()
         
     def forward(self, x):
-        x = self.time_context_layers(x)
-        x = nn.Linear(1500, num_classes) #TODO change later
-        #x = self.pooling_layer(x)
-        #x = self.segment_layers(x)
-        #x = self.softmax(x) #TODO use softmax? not if i use nn.CrossEntropyLoss()
-        return x #TODO maybe also return seg6 and seg7 for the x-vector?
-
-class TDNN(nn.Module):
-    def __init__(self, input_size, hidden_size, frames, num_classes):
-        super(TDNN, self).__init__()
-        self.input_size = input_size
-        self.l1 = nn.Linear(input_size, hidden_size)
-        self.l2 = nn.Linear(hidden_size, hidden_size)
-        self.l3 = nn.Linear(hidden_size, num_classes)
-        self.relu = nn.ReLU()
-    
-    def forward(self, x):
-        out = self.l1(x)
-        out = self.relu(out)
-        out = self.l2(out)
-        out = self.relu(out)
-        out = self.l2(out)
-        out = self.relu(out)
-        out = self.l3(out)
-        return out
+        out = self.time_context_layers(x)
+        ### Stat Pool
+        # mean = torch.mean(out,1)
+        # std = torch.std(out,1)
+        # out = torch.cat((mean,std),1)
+        out = self.segment_layers(out)
+        out = self.output(out) #TODO use softmax? not if i use nn.CrossEntropyLoss()
+        return out #TODO maybe also return seg6 and seg7 for the x-vector?
 
 model = TDNN(input_size, hidden_size, frames, num_classes).to(device)
 model = model.float()
@@ -212,6 +189,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 n_total_steps = len(train_data_loader)
 
 for epoch in range(num_epochs):
+    model.train()
     for i, (samples, labels) in enumerate(train_data_loader):
         # Reshape data
         samples.requires_grad = True
@@ -226,5 +204,26 @@ for epoch in range(num_epochs):
         loss.backward()
         optimizer.step()
 
-        if (i+1) % 100 == 0:
+        if (i+1) % 10 == 0:
             print(f'epoch {epoch+1} / {num_epochs}, step {i+1} / {n_total_steps}, loss = {loss.item():.4f}')
+
+# Save the model dictionary
+#torch.save(model.state_dict(), PATH)
+
+# Testing
+# with torch.no_grad():
+#     n_correct = 0
+#     n_samples = 0
+
+#     for sapmles, labels in test_data_loader:
+#         # Reshape  data
+#         labels_hot = F.one_hot(labels, num_classes=10)
+
+#         outputs = model(samples.float())
+
+#         _, predictions = torch.max(outputs.data, 1)
+#         n_samples += labels_hot.size(0)
+#         n_correct += (predictions == labels_hot).sum().item()
+
+#     accuracy = 100.0 * n_correct / n_samples
+#     print(f'accuracy = {accuracy}')
