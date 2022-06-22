@@ -134,7 +134,7 @@ test_dataset.load_test_data()
 
 # Set up dataloader for easy access to shuffled data batches
 train_data_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True, drop_last=True)
-test_data_loader = DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=True, drop_last=True)
+test_data_loader = DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False, drop_last=True)
 
 # TODO Maybe visualize select data samples for images for the thesis
 
