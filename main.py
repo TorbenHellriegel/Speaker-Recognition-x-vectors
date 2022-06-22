@@ -1,4 +1,5 @@
 import torch
+import torch.cuda
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
@@ -90,6 +91,8 @@ if __name__ == "__main__":
     # Push calculation to gpu if possible
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+    print(torch.cuda.is_available())
+
     # Set important variables
     config = Config()
 
@@ -105,7 +108,7 @@ if __name__ == "__main__":
     train()
 
     # Save the model dictionary
-    # torch.save(model.state_dict(), config.path)
+    torch.save(model.state_dict(), config.path)
 
     # Testing
     test()

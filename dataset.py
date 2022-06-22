@@ -12,8 +12,6 @@ from torch.utils.data import Dataset
 # TODO adjust based on what the dataset looks like
 class Dataset(Dataset): 
     def __init__(self):
-        self.dsm = 1 #Decrease Sample Number if a fast test for debuging is required
-
         self.classes = 0
         self.all_classes = 0
 
@@ -38,9 +36,9 @@ class Dataset(Dataset):
         # Get only every second sample for the training data samples
         # TODO put training and testing data in different folders to make this step easier
         for i, g in enumerate(globs):
-            if(i%(2*self.dsm) == 0):
-                globs[int(i/(2*self.dsm))] = globs[i]
-        globs = globs[:int(len(globs)/(2*self.dsm))]
+            if(i%(2) == 0):
+                globs[int(i/(2))] = globs[i]
+        globs = globs[:int(len(globs)/(2))]
 
         # Get the class names from the paths
         self.classes = np.array([os.path.basename(os.path.dirname(f)) for f in globs])
@@ -79,9 +77,9 @@ class Dataset(Dataset):
         # Get only every second sample for the testing data samples
         # TODO put training and testing data in different folders to make this step easier
         for i, g in enumerate(globs):
-            if(i%(2*self.dsm) == 1):
-                globs[int((i-1)/(2*self.dsm))] = globs[i]
-        globs = globs[:int(len(globs)/(2*self.dsm))]
+            if(i%(2) == 1):
+                globs[int((i-1)/(2))] = globs[i]
+        globs = globs[:int(len(globs)/(2))]
 
         # Get the class names from the paths
         self.classes = np.array([os.path.basename(os.path.dirname(f)) for f in globs])
