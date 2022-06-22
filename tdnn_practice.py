@@ -17,15 +17,7 @@ class Config:
         self.num_epochs = num_epochs
         self.path = path
 
-if __name__ == "__main__":
-    # Push calculation to gpu if possible
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-    # Set important variables
-    config = Config()
-
-    # LOAD DATA
-
+def load_data():
     # Make two datasets for training and testing with different samples
     train_dataset = Dataset()
     train_dataset.load_train_data()
@@ -36,14 +28,14 @@ if __name__ == "__main__":
     train_data_loader = DataLoader(dataset=train_dataset, batch_size=config.batch_size, shuffle=True, drop_last=True)
     test_data_loader = DataLoader(dataset=test_dataset, batch_size=config.batch_size, shuffle=False, drop_last=True)
 
-    # TODO Maybe visualize select data samples for images for the thesis
+    return train_data_loader, test_data_loader
 
-    # DEFINE NEURAL NETWORK
-
+def setup_model(load_existing=False):
     model = NeuralNet(config.input_size, config.hidden_size, config.num_classes)
     # Maybe load an existing pretrained model dictionary
-    model.load_state_dict(torch.load(config.path))
-    model.eval()
+    if(load_existing):
+        model.load_state_dict(torch.load(config.path))
+        model.eval()
     model = model.to(device)
     model = model.float()
 
@@ -51,12 +43,13 @@ if __name__ == "__main__":
     criterion = nn.CrossEntropyLoss() #also applies softmax
     optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate)
 
-    # Training loop
-    total_steps = len(train_data_loader)
+    return model, criterion, optimizer
 
+def train():
+    total_steps = len(train_data)
     for epoch in range(config.num_epochs):
         model.train()
-        for i, (samples, labels) in enumerate(train_data_loader):
+        for i, (samples, labels) in enumerate(train_data):
             # Adjust data
             samples.requires_grad = True
             samples = samples.to(device)
@@ -76,15 +69,12 @@ if __name__ == "__main__":
                 print(f'epoch {epoch+1} / {config.num_epochs}, step {i+1} / {total_steps}, loss = {loss.item():.4f}')
             #TODO return extra data for the graphs in the thesis
 
-    # Save the model dictionary
-    torch.save(model.state_dict(), config.path)
-
-    # Testing
+def test():
     with torch.no_grad():
         n_correct = 0
         n_samples = 0
 
-        for sapmles, labels in test_data_loader:
+        for samples, labels in test_data:
 
             outputs = model(samples.float())
 
@@ -95,3 +85,27 @@ if __name__ == "__main__":
         accuracy = 100.0 * n_correct / n_samples
         print(f'accuracy = {accuracy}')
         #TODO return extra data for the graphs in the thesis
+
+if __name__ == "__main__":
+    # Push calculation to gpu if possible
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    # Set important variables
+    config = Config()
+
+    # Load data
+    train_data, test_data = load_data()
+
+    # TODO Maybe visualize select data samples for images for the thesis
+
+    # Define neural network
+    model, criterion, optimizer = setup_model(load_existing=True)
+
+    # Training loop
+    train()
+
+    # Save the model dictionary
+    torch.save(model.state_dict(), config.path)
+
+    # Testing
+    test()
