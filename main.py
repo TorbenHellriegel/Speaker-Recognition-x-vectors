@@ -105,7 +105,7 @@ if __name__ == "__main__":
     train()
 
     # Save the model dictionary
-    torch.save(model.state_dict(), config.path)
+    # torch.save(model.state_dict(), config.path)
 
     # Testing
     test()
