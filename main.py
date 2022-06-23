@@ -66,7 +66,7 @@ def train():
             loss.backward()
             optimizer.step()
 
-            if (i+1) % 10 == 0:
+            if (i+1) % 1 == 0:
                 print(f'epoch {epoch+1} / {config.num_epochs}, step {i+1} / {total_steps}, loss = {loss.item():.4f}')
             #TODO return extra data for the graphs in the thesis
 

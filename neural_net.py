@@ -1,22 +1,19 @@
 import torch
 import torch.nn as nn
 
+from tdnn import TDNN
+
 
 class NeuralNet(nn.Module):
     def __init__(self, input_size, hidden_size, num_classes):
         super(NeuralNet, self).__init__()
 
         self.time_context_layers = nn.Sequential(
-            nn.Linear(input_size, hidden_size), #TODO add time context somehow
-            nn.LeakyReLU(),
-            nn.Linear(hidden_size, hidden_size),
-            nn.LeakyReLU(),
-            nn.Linear(hidden_size, hidden_size),
-            nn.LeakyReLU(),
-            nn.Linear(hidden_size, hidden_size),
-            nn.LeakyReLU(),
-            nn.Linear(hidden_size, 1500),
-            nn.LeakyReLU()
+            TDNN(input_dim=24, output_dim=512, context_size=5, dilation=1),
+            TDNN(input_dim=512, output_dim=512, context_size=3, dilation=2),
+            TDNN(input_dim=512, output_dim=512, context_size=3, dilation=3),
+            TDNN(input_dim=512, output_dim=512, context_size=1, dilation=1),
+            TDNN(input_dim=512, output_dim=1500, context_size=1, dilation=1)
         )
         
         self.segment_layer6 = nn.Sequential(
