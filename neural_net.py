@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from tdnn import TDNN
+from tdnn import TdnnLayer
 
 
 class NeuralNet(nn.Module):
@@ -9,11 +9,11 @@ class NeuralNet(nn.Module):
         super(NeuralNet, self).__init__()
 
         self.time_context_layers = nn.Sequential(
-            TDNN(input_dim=24, output_dim=512, context_size=5, dilation=1),
-            TDNN(input_dim=512, output_dim=512, context_size=3, dilation=2),
-            TDNN(input_dim=512, output_dim=512, context_size=3, dilation=3),
-            TDNN(input_dim=512, output_dim=512, context_size=1, dilation=1),
-            TDNN(input_dim=512, output_dim=1500, context_size=1, dilation=1)
+            TdnnLayer(input_dim=24, output_dim=512, context_size=5, dilation=1),
+            TdnnLayer(input_dim=512, output_dim=512, context_size=3, dilation=2),
+            TdnnLayer(input_dim=512, output_dim=512, context_size=3, dilation=3),
+            TdnnLayer(input_dim=512, output_dim=512, context_size=1, dilation=1),
+            TdnnLayer(input_dim=512, output_dim=1500, context_size=1, dilation=1)
         )
         
         self.segment_layer6 = nn.Sequential(
