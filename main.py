@@ -76,6 +76,8 @@ def test():
         n_samples = 0
 
         for samples, labels in test_data:
+            samples = samples.to(device)
+            labels = labels.to(device)
 
             outputs = model(samples.float())
 
