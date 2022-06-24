@@ -51,7 +51,7 @@ class Dataset(Dataset):
         for i, g in enumerate(globs):
             rate, sample = wavfile.read(g, np.dtype)
             clas = self.classes[i]
-            sub_samle_length = int(rate/10)
+            sub_samle_length = int(rate)
             print("load train sample: ", g)
             # Split the sample into several 0.1 second long samples to increase number of samples
             # Because the mel frequencies look very different for all 10 instruments cutting down sample length like this should still give good results
@@ -92,7 +92,7 @@ class Dataset(Dataset):
         for i, g in enumerate(globs):
             rate, sample = wavfile.read(g, np.dtype)
             clas = self.classes[i]
-            sub_samle_length = int(rate/10)
+            sub_samle_length = int(rate)
             print("load test sample: ", g)
             # Split the sample into several 0.1 second long samples to increase number of samples
             # Because the mel frequencies look very different for all 10 instruments cutting down sample length like this should still give good results

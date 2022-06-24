@@ -58,7 +58,6 @@ def train():
 
             # Forward pass
             outputs = model(samples.float())
-            _, predictions = torch.max(outputs.data, 1)
             loss = criterion(outputs, labels)
 
             # Backward pass
@@ -66,7 +65,7 @@ def train():
             loss.backward()
             optimizer.step()
 
-            if (i+1) % 10 == 0:
+            if (i+1) % 1 == 0:
                 print(f'epoch {epoch+1} / {config.num_epochs}, step {i+1} / {total_steps}, loss = {loss.item():.4f}')
             #TODO return extra data for the graphs in the thesis
 
@@ -76,6 +75,8 @@ def test():
         n_samples = 0
 
         for samples, labels in test_data:
+            samples = samples.to(device)
+            labels = labels.to(device)
 
             outputs = model(samples.float())
 
