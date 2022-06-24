@@ -9,11 +9,11 @@ class NeuralNet(nn.Module):
         super(NeuralNet, self).__init__()
 
         self.time_context_layers = nn.Sequential(
-            TdnnLayer(input_dim=24, output_dim=512, context_size=5, dilation=1),
-            TdnnLayer(input_dim=512, output_dim=512, context_size=3, dilation=2),
-            TdnnLayer(input_dim=512, output_dim=512, context_size=3, dilation=3),
-            TdnnLayer(input_dim=512, output_dim=512, context_size=1, dilation=1),
-            TdnnLayer(input_dim=512, output_dim=1500, context_size=1, dilation=1)
+            TdnnLayer(input_dim=input_size, output_dim=hidden_size, context_size=5, dilation=1),
+            TdnnLayer(input_dim=hidden_size, output_dim=hidden_size, context_size=3, dilation=2),
+            TdnnLayer(input_dim=hidden_size, output_dim=hidden_size, context_size=3, dilation=3),
+            TdnnLayer(input_dim=hidden_size, output_dim=hidden_size, context_size=1, dilation=1),
+            TdnnLayer(input_dim=hidden_size, output_dim=1500, context_size=1, dilation=1)
         )
         
         self.segment_layer6 = nn.Sequential(

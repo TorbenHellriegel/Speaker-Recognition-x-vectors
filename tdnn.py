@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 class TdnnLayer(nn.Module):
     
-    def __init__(self, input_dim=24,  output_dim=512, context_size=5, stride=1, dilation=1, batch_norm=True, dropout_p=0.0):
+    def __init__(self, input_dim=24,  output_dim=512, context_size=5, stride=1, dilation=1):
         '''
         Context size and dilation determine the frames selected
         (although context size is not really defined in the traditional sense)
@@ -21,16 +21,10 @@ class TdnnLayer(nn.Module):
         self.context_size = context_size
         self.stride = stride
         self.dilation = dilation
-        
-        self.batch_norm = batch_norm
-        self.dropout_p = dropout_p
       
         self.kernel = nn.Linear(input_dim*context_size, output_dim)
         self.nonlinearity = nn.ReLU()
-        if self.batch_norm:
-            self.bn = nn.BatchNorm1d(output_dim)
-        if self.dropout_p:
-            self.drop = nn.Dropout(p=self.dropout_p)
+        self.bn = nn.BatchNorm1d(output_dim)
         
     def forward(self, x):
         '''
@@ -38,9 +32,15 @@ class TdnnLayer(nn.Module):
         outpu: size (batch, new_seq_len, output_features)
         '''
 
+        print("-----------------------------------")
+        print("context: ", self.context_size, ", ", self.dilation)
+        print("input x shape: ", x.shape)
+
         _, _, d = x.shape
         assert (d == self.input_dim), 'Input dimension was wrong. Expected ({}), got ({})'.format(self.input_dim, d)
         x = x.unsqueeze(1)
+
+        print("x unsqueezed shape: ", x.shape)
 
         # Unfold input into smaller temporal contexts
         x = F.unfold(
@@ -50,17 +50,15 @@ class TdnnLayer(nn.Module):
                         dilation=(self.dilation,1)
                     )
 
-        # N, output_dim*context_size, new_t = x.shape
+        print("x unfolded shape: ", x.shape)
+
         x = x.transpose(1,2)
+        print("x transposed shape: ", x.shape)
         x = self.kernel(x)
         x = self.nonlinearity(x)
-        
-        if self.dropout_p:
-            x = self.drop(x)
 
-        if self.batch_norm:
-            x = x.transpose(1,2)
-            x = self.bn(x)
-            x = x.transpose(1,2)
+        x = x.transpose(1,2)
+        x = self.bn(x)
+        x = x.transpose(1,2)
 
         return x
