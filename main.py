@@ -58,7 +58,6 @@ def train():
 
             # Forward pass
             outputs = model(samples.float())
-            _, predictions = torch.max(outputs.data, 1)
             loss = criterion(outputs, labels)
 
             # Backward pass
