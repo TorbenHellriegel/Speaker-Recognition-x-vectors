@@ -31,7 +31,7 @@ class Dataset(Dataset):
     # TODO Preprocess data before this if neccessary
     def load_train_data(self, mfcc_numcep=24, mfcc_nfilt=26, mfcc_nfft=512):
         # Get the paths to all the data samples
-        globs = glob.glob('../VoxCelebDownload/data/VoxCeleb/vox1_dev_wav/id1000*/*/*.wav') #TODO replace id100* with * to load all samples
+        globs = glob.glob('../../../../../../../../../data/7hellrie/VoxCeleb/vox1_dev_wav/id1000*/*/*.wav') #TODO replace id100* with * to load all samples
 
         # Get the class names from the paths
         self.classes = np.array([os.path.basename(os.path.dirname(os.path.dirname(f))) for f in globs])
@@ -67,7 +67,7 @@ class Dataset(Dataset):
     # TODO Preprocess data before this if neccessary
     def load_test_data(self, mfcc_numcep=24, mfcc_nfilt=26, mfcc_nfft=512): #nfft should be 512 I think but that gives warning messages
         # Get the paths to all the data samples
-        globs = glob.glob('../VoxCelebDownload/data/VoxCeleb/vox1_test_wav/*/*/*.wav')
+        globs = glob.glob('../../../../../../../../../data/7hellrie/VoxCeleb/vox1_test_wav/*/*/*.wav')
 
         # Get the class names from the paths
         self.classes = np.array([os.path.basename(os.path.dirname(os.path.dirname(f))) for f in globs])

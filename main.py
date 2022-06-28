@@ -109,7 +109,7 @@ if __name__ == "__main__":
     # TODO Maybe visualize select data samples for images for the thesis
 
     # Define neural network
-    model, criterion, optimizer = setup_model(load_existing=False)
+    model, criterion, optimizer = setup_model(load_existing=True)
 
     # Training loop
     train(train_data)
