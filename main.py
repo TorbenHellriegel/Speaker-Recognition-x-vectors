@@ -9,7 +9,7 @@ from neural_net import NeuralNet
 
 class Config:
     def __init__(self, batch_size=100, input_size=24, hidden_size=512, num_classes=10, learning_rate=0.001,
-                num_epochs=3, path='./trained_models/x_vector_model.pth'):
+                num_epochs=5, path='./trained_models/x_vector_model.pth'):
         self.batch_size = batch_size
         self.input_size = input_size
         self.hidden_size = hidden_size
@@ -70,7 +70,7 @@ def train(train_data):
             loss.backward()
             optimizer.step()
 
-            if (i+1) % 100 == 0:
+            if (i+1) % 5 == 0:
                 print(f'epoch {epoch+1} / {config.num_epochs}, step {i+1} / {total_steps}, loss = {loss.item():.4f}')
             #TODO return extra data for the graphs in the thesis
 
@@ -100,7 +100,7 @@ if __name__ == "__main__":
     print(torch.cuda.is_available())
 
     # Set important variables
-    config = Config(num_epochs=1)
+    config = Config()
 
     # Load data
     train_data = load_train_data()

@@ -40,24 +40,34 @@ class Dataset(Dataset):
         # Gat the list of samples, classes and the sampling rate
         samples = []
         rates = []
-        for g in globs:
+        classes = []
+        for i, g in enumerate(globs):
             print("load train sample: ", g)
             rate, sample = wavfile.read(g, np.dtype)
-            sample = mfcc(sample, rate, numcep=mfcc_numcep, nfilt=mfcc_nfilt, nfft=mfcc_nfft)
-            samples.append(np.array(sample))
-            rates.append(rate)
+            clas = self.classes[i]
+            sub_sample_length = int(rate * 3)
+            # Split the sample into several 3 second long samples to increase number of samples and make samples the same length
+            # Because the mel frequencies look very different for all 10 instruments cutting down sample length like this should still give good results
+            # TODO this takes too long to do every time so do this in preprocessing ahead of time
+            for j in range(math.floor(len(sample)/sub_sample_length)):
+                small_sample = sample[j*sub_sample_length : j*sub_sample_length + sub_sample_length]
+                small_sample = mfcc(small_sample, rate, numcep=mfcc_numcep, nfilt=mfcc_nfilt, nfft=mfcc_nfft)
+                samples.append(np.array(small_sample))
+                rates.append(rate)
+                classes.append(clas)
 
         #TODO add data augmentation to increase number of training samples
 
-        self.samples = samples
-        self.sampling_rates = rates
+        self.samples = np.array(samples)
+        self.sampling_rates = np.array(rates)
+        self.classes = np.array(classes)
         self.n_samples = len(self.samples)
     
     # Load the testing data and save all relevant info in arrays
     # TODO Preprocess data before this if neccessary
     def load_test_data(self, mfcc_numcep=24, mfcc_nfilt=26, mfcc_nfft=512): #nfft should be 512 I think but that gives warning messages
         # Get the paths to all the data samples
-        globs = glob.glob('../VoxCelebDownload/data/VoxCeleb/vox1_test_wav/*/*/*.wav') #TODO replace id100* with * to load all samples
+        globs = glob.glob('../VoxCelebDownload/data/VoxCeleb/vox1_test_wav/*/*/*.wav')
 
         # Get the class names from the paths
         self.classes = np.array([os.path.basename(os.path.dirname(os.path.dirname(f))) for f in globs])
@@ -66,13 +76,23 @@ class Dataset(Dataset):
         # Gat the list of samples, classes and the sampling rate
         samples = []
         rates = []
-        for g in globs:
+        classes = []
+        for i, g in enumerate(globs):
             print("load train sample: ", g)
             rate, sample = wavfile.read(g, np.dtype)
-            sample = mfcc(sample, rate, numcep=mfcc_numcep, nfilt=mfcc_nfilt, nfft=mfcc_nfft)
-            samples.append(np.array(sample))
-            rates.append(rate)
+            clas = self.classes[i]
+            sub_sample_length = int(rate * 3)
+            # Split the sample into several 3 second long samples to increase number of samples and make samples the same length
+            # Because the mel frequencies look very different for all 10 instruments cutting down sample length like this should still give good results
+            # TODO this takes too long to do every time so do this in preprocessing ahead of time
+            for j in range(math.floor(len(sample)/sub_sample_length)):
+                small_sample = sample[j*sub_sample_length : j*sub_sample_length + sub_sample_length]
+                small_sample = mfcc(small_sample, rate, numcep=mfcc_numcep, nfilt=mfcc_nfilt, nfft=mfcc_nfft)
+                samples.append(np.array(small_sample))
+                rates.append(rate)
+                classes.append(clas)
 
-        self.samples = samples
-        self.sampling_rates = rates
+        self.samples = np.array(samples)
+        self.sampling_rates = np.array(rates)
+        self.classes = np.array(classes)
         self.n_samples = len(self.samples)
