@@ -3,21 +3,9 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
+from config import Config
 from dataset import Dataset
 from tdnn import TdnnLayer
-
-
-class Config:
-    def __init__(self, batch_size=100, input_size=24, hidden_size=512, num_classes=10, learning_rate=0.001,
-                num_epochs=5, model_path='./trained_models/x_vector_model.pth', load_existing_model=True):
-        self.batch_size = batch_size
-        self.input_size = input_size
-        self.hidden_size = hidden_size
-        self.num_classes = num_classes
-        self.learning_rate = learning_rate
-        self.num_epochs = num_epochs
-        self.model_path = model_path
-        self.load_existing_model = load_existing_model
 
 
 class NeuralNet(pl.LightningModule):
@@ -63,13 +51,13 @@ class NeuralNet(pl.LightningModule):
         samples, labels = batch
         outputs, x_vec = self(samples.float()) #TODO imlement PLDA clasifier
         loss = self.loss_function(outputs, labels)
-        return loss
+        return {'loss': loss}
     
     def validation_step(self, batch, batch_index): #TODO somehow save extra data for the graphs in the thesis
         samples, labels = batch
         outputs, x_vec = self(samples.float()) #TODO imlement PLDA clasifier
         val_loss = self.loss_function(outputs, labels)
-        return val_loss
+        return {'val_loss': val_loss}
     
     def configure_optimizers(self):
         return torch.optim.Adam(model.parameters(), lr=config.learning_rate)
@@ -82,7 +70,7 @@ class NeuralNet(pl.LightningModule):
         train_data_loader = DataLoader(dataset=train_dataset, batch_size=config.batch_size, num_workers=4, shuffle=True, drop_last=True)
         return train_data_loader
 
-    def val_dataloader(self):
+    def val_dataloader(self): #TODO not validation use test instead
         test_dataset = Dataset()
         test_dataset.load_test_data()
 
@@ -90,12 +78,15 @@ class NeuralNet(pl.LightningModule):
         test_data_loader = DataLoader(dataset=test_dataset, batch_size=config.batch_size, num_workers=4, shuffle=False, drop_last=True)
         return test_data_loader
 
+class XVectorModel(NeuralNet):
+    def __init__(self, input_size, hidden_size, num_classes):
+        super().__init__(input_size, hidden_size, num_classes)
 
 if __name__ == "__main__":
     config = Config()
 
     # Define neural network
-    model = NeuralNet(config.input_size, config.hidden_size, config.num_classes)
+    model = XVectorModel(config.input_size, config.hidden_size, config.num_classes)
 
     # Maybe load an existing pretrained model dictionary
     if(config.load_existing_model):
@@ -103,7 +94,7 @@ if __name__ == "__main__":
         model.eval()
     model = model.float()
 
-    trainer = pl.Trainer(accelerator='gpu', devices=1, max_epochs=config.num_epochs, log_every_n_steps=1, fast_dev_run=False)
+    trainer = pl.Trainer(accelerator='gpu', devices=1, max_epochs=config.num_epochs, log_every_n_steps=1, fast_dev_run=True)
     trainer.fit(model)
 
     # Save the model dictionary

@@ -8,8 +8,8 @@ from python_speech_features import mfcc
 from scipy.io import wavfile
 from torch.utils.data import Dataset
 
-train_path1 = '../../../../../../../../../data/7hellrie/VoxCeleb/vox1_dev_wav/id1000*/*/*.wav' #TODO replace id100* with * to load all samples
-test_path1 = '../../../../../../../../../data/7hellrie/VoxCeleb/vox1_test_wav/id103*/*/*.wav'
+train_path1 = '../../../../../../../../../data/7hellrie/VoxCeleb/vox1_dev_wav/id1000*/*/00001.wav' #TODO replace id100* with * to load all samples
+test_path1 = '../../../../../../../../../data/7hellrie/VoxCeleb/vox1_test_wav/id103*/*/00001.wav'
 train_path2 = 'data/VoxCeleb/vox1_dev_wav/wav/id1000*/*/00001.wav'
 test_path2 = 'data/VoxCeleb/vox1_test_wav/wav/id103*/*/00001.wav'
 
