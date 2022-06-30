@@ -32,15 +32,10 @@ class NeuralNet(pl.LightningModule):
             TdnnLayer(input_size=hidden_size, output_size=1500)
         )
         
-        self.segment_layer6 = nn.Sequential(
-            nn.Linear(3000, hidden_size),
-            nn.ReLU(),
-        )
+        self.segment_layer6 = nn.Linear(3000, hidden_size)
+        self.segment_layer7 = nn.Linear(hidden_size, hidden_size)
+        self.relu = nn.ReLU()
         
-        self.segment_layer7 = nn.Sequential(
-            nn.Linear(hidden_size, hidden_size),
-            nn.ReLU()
-        )
 
         self.output = nn.Linear(hidden_size, num_classes)
 
@@ -56,28 +51,30 @@ class NeuralNet(pl.LightningModule):
         stand_dev = torch.std(out, 1)
         out = torch.cat((mean, stand_dev), 1)
 
-        out = self.segment_layer6(out)
+        x_vec = self.segment_layer6(out)
+        out = self.relu(x_vec)
         out = self.segment_layer7(out)
+        out = self.relu(out)
         
         out = self.output(out)  #TODO use softmax? nn.CrossEntropyLoss() appearently already includes a softmax
-        return out #TODO also return the output of the segment_layers for the x-vector
+        return out, x_vec
     
-    def training_step(self, batch, batch_index):
+    def training_step(self, batch, batch_index): #TODO somehow save extra data for the graphs in the thesis
         samples, labels = batch
-        outputs = self(samples.float())
+        outputs, x_vec = self(samples.float()) #TODO imlement PLDA clasifier
         loss = self.loss_function(outputs, labels)
         return loss
     
-    def validation_step(self, batch, batch_index):
+    def validation_step(self, batch, batch_index): #TODO somehow save extra data for the graphs in the thesis
         samples, labels = batch
-        outputs = self(samples.float())
+        outputs, x_vec = self(samples.float()) #TODO imlement PLDA clasifier
         val_loss = self.loss_function(outputs, labels)
         return val_loss
     
     def configure_optimizers(self):
         return torch.optim.Adam(model.parameters(), lr=config.learning_rate)
 
-    def train_dataloader(self):
+    def train_dataloader(self):# TODO maybe visualize select data samples for images for the thesis
         train_dataset = Dataset()
         train_dataset.load_train_data()
 

@@ -8,12 +8,11 @@ from python_speech_features import mfcc
 from scipy.io import wavfile
 from torch.utils.data import Dataset
 
-train_path1 = '../../../../../../../../../data/7hellrie/VoxCeleb/vox1_dev_wav/id1000*/*/*.wav'
+train_path1 = '../../../../../../../../../data/7hellrie/VoxCeleb/vox1_dev_wav/id1000*/*/*.wav' #TODO replace id100* with * to load all samples
 test_path1 = '../../../../../../../../../data/7hellrie/VoxCeleb/vox1_test_wav/id103*/*/*.wav'
 train_path2 = 'data/VoxCeleb/vox1_dev_wav/wav/id1000*/*/00001.wav'
 test_path2 = 'data/VoxCeleb/vox1_test_wav/wav/id103*/*/00001.wav'
 
-# TODO adjust based on what the dataset looks like
 class Dataset(Dataset): 
     def __init__(self):
         self.classes = 0
@@ -35,7 +34,7 @@ class Dataset(Dataset):
     # TODO Preprocess data before this if neccessary
     def load_train_data(self, mfcc_numcep=24, mfcc_nfilt=26, mfcc_nfft=512):
         # Get the paths to all the data samples
-        globs = glob.glob(train_path1) #TODO replace id100* with * to load all samples
+        globs = glob.glob(train_path1)
 
         # Get the class names from the paths
         self.classes = np.array([os.path.basename(os.path.dirname(os.path.dirname(f))) for f in globs])
