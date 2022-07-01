@@ -51,7 +51,7 @@ class Dataset(Dataset):
             sub_sample_length = int(rate * 3)
             # Split the sample into several 3 second long samples to increase number of samples and make samples the same length
             # Because the mel frequencies look very different for all 10 instruments cutting down sample length like this should still give good results
-            # TODO this takes too long to do every time so do this in preprocessing ahead of time
+            # TODO maybe do this in preprocessing ahead of time
             for j in range(math.floor(len(sample)/sub_sample_length)):
                 small_sample = sample[j*sub_sample_length : j*sub_sample_length + sub_sample_length]
                 small_sample = mfcc(small_sample, rate, numcep=mfcc_numcep, nfilt=mfcc_nfilt, nfft=mfcc_nfft)
@@ -87,7 +87,7 @@ class Dataset(Dataset):
             sub_sample_length = int(rate * 3)
             # Split the sample into several 3 second long samples to increase number of samples and make samples the same length
             # Because the mel frequencies look very different for all 10 instruments cutting down sample length like this should still give good results
-            # TODO this takes too long to do every time so do this in preprocessing ahead of time
+            # TODO maybe do this in preprocessing ahead of time
             for j in range(math.floor(len(sample)/sub_sample_length)):
                 small_sample = sample[j*sub_sample_length : j*sub_sample_length + sub_sample_length]
                 small_sample = mfcc(small_sample, rate, numcep=mfcc_numcep, nfilt=mfcc_nfilt, nfft=mfcc_nfft)
