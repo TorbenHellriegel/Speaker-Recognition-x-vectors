@@ -8,11 +8,6 @@ from python_speech_features import mfcc
 from scipy.io import wavfile
 from torch.utils.data import Dataset
 
-train_path1 = '../../../../../../../../../data/7hellrie/VoxCeleb/vox1_dev_wav/id1000*/*/00001.wav' #TODO replace id100* with * to load all samples
-test_path1 = '../../../../../../../../../data/7hellrie/VoxCeleb/vox1_test_wav/id103*/*/00001.wav'
-train_path2 = 'data/VoxCeleb/vox1_dev_wav/wav/id1000*/*/00001.wav'
-test_path2 = 'data/VoxCeleb/vox1_test_wav/wav/id103*/*/00001.wav'
-
 class Dataset(Dataset): 
     def __init__(self):
         self.classes = 0
@@ -32,9 +27,15 @@ class Dataset(Dataset):
     
     # Load the training data and save all relevant info in arrays
     # TODO Preprocess data before this if neccessary
-    def load_train_data(self, mfcc_numcep=24, mfcc_nfilt=26, mfcc_nfft=512):
+    def load_train_data(self, mfcc_numcep=24, mfcc_nfilt=26, mfcc_nfft=512, data_folder_path='data'):
+        vox_train_path = data_folder_path + '/VoxCeleb/vox1_dev_wav/id1000*/*/00001.wav' #TODO replace id100* and 00001 with * to load all samples
+        musan_music_path = data_folder_path + '/musan_split/music/*/*/*.wav'
+        musan_speech_path = data_folder_path + '/musan_split/speech/*/*/*.wav'
+        rir_mediumroom_path = data_folder_path + '/RIRS_NOISES/simulated_rirs/mediumroom/*/*.wav'
+        rir_smallroom_path = data_folder_path + '/RIRS_NOISES/simulated_rirs/smallroom/*/*.wav'
+
         # Get the paths to all the data samples
-        globs = glob.glob(train_path1)
+        globs = glob.glob(vox_train_path)
 
         # Get the class names from the paths
         self.classes = np.array([os.path.basename(os.path.dirname(os.path.dirname(f))) for f in globs])
@@ -68,9 +69,15 @@ class Dataset(Dataset):
     
     # Load the testing data and save all relevant info in arrays
     # TODO Preprocess data before this if neccessary
-    def load_test_data(self, mfcc_numcep=24, mfcc_nfilt=26, mfcc_nfft=512): #nfft should be 512 I think but that gives warning messages
+    def load_test_data(self, mfcc_numcep=24, mfcc_nfilt=26, mfcc_nfft=512, data_folder_path='data'):
+        vox_test_path = data_folder_path + '/VoxCeleb/vox1_test_wav/id103*/*/00001.wav' #TODO replace id100* and 00001 with * to load all samples
+        musan_music_path = data_folder_path + '/musan_split/music/*/*/*.wav'
+        musan_speech_path = data_folder_path + '/musan_split/speech/*/*/*.wav'
+        rir_mediumroom_path = data_folder_path + '/RIRS_NOISES/simulated_rirs/mediumroom/*/*.wav'
+        rir_smallroom_path = data_folder_path + '/RIRS_NOISES/simulated_rirs/smallroom/*/*.wav'
+
         # Get the paths to all the data samples
-        globs = glob.glob(test_path1)
+        globs = glob.glob(vox_test_path)
 
         # Get the class names from the paths
         self.classes = np.array([os.path.basename(os.path.dirname(os.path.dirname(f))) for f in globs])
