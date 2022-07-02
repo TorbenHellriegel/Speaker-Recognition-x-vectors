@@ -6,10 +6,8 @@ class Config:
                 num_classes=10,
                 learning_rate=0.001,
                 num_epochs=5,
-                load_existing_x_model=True,
-                load_existing_plda_model=True,
-                x_model_path='./trained_models/x_vector_model.pth',
-                plda_model_path='./trained_models/plda_classifier_model.pth',
+                load_existing_model=True,
+                model_path='./trained_models/x_vector_model.pth',
                 data_folder_path='../../../../../../../../../data/7hellrie'):
                 
         self.data_folder_path = data_folder_path
@@ -20,8 +18,5 @@ class Config:
         self.num_classes = num_classes
         self.learning_rate = learning_rate
         self.num_epochs = num_epochs
-        self.load_existing_x_model = load_existing_x_model
-        self.x_model_path = x_model_path
-        # PLDA model parameters
-        self.load_existing_plda_model = load_existing_plda_model
-        self.plda_model_path = plda_model_path
+        self.load_existing_model = load_existing_model
+        self.model_path = model_path
