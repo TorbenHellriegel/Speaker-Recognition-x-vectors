@@ -20,15 +20,13 @@ class XVectorModel(pl.LightningModule):
             TdnnLayer(input_size=hidden_size, output_size=hidden_size),
             TdnnLayer(input_size=hidden_size, output_size=1500)
         )
-        
         self.segment_layer6 = nn.Linear(3000, hidden_size)
         self.segment_layer7 = nn.Linear(hidden_size, hidden_size)
-        
         self.output = nn.Linear(hidden_size, num_classes) #TODO use softmax? nn.CrossEntropyLoss() appearently already includes a softmax
-
-        self.x_vectors = []
         
         self.plda_layer = nn.Linear(hidden_size, 150)
+
+        self.dataset = Dataset()
 
     # Satistic pooling layer
     def stat_pool(self, x):
@@ -50,6 +48,7 @@ class XVectorModel(pl.LightningModule):
             
         elif(mode == 'plda_classifier'):
             out = self.plda_layer(x)
+            
         return out
 
     def extract_x_vec(self, x):
@@ -73,33 +72,41 @@ class XVectorModel(pl.LightningModule):
         return loss
     
     def test_step(self, batch, batch_index):
-        samples, _ = batch
-        x_vec = self.extract_x_vec(samples.float())
-        return x_vec
+        samples, labels = batch
+
+        if(mode == 'x_vector'):
+            x_vecs = self.extract_x_vec(samples.float())
+        elif(mode == 'plda_classifier'):
+            #TODO plda predictions
+            x_vecs = samples
+
+        return [(x_vecs, labels)]
 
     def test_epoch_end(self, test_step_outputs):
-        for batch_output in test_step_outputs:
-            for x_vec in batch_output:
-                self.x_vectors.append(x_vec)
+        if(mode == 'x_vector'):
+            for batch_output in test_step_outputs:
+                for x_vec, label in batch_output:
+                    self.dataset.load_train_x_vec(x_vec, label)
+        self.dataset.change_mode('plda_classifier')
         return test_step_outputs
     
     def configure_optimizers(self):
         return torch.optim.Adam(model.parameters(), lr=config.learning_rate)
 
     def train_dataloader(self):# TODO maybe visualize select data samples for images for the thesis
-        train_dataset = Dataset()
-        train_dataset.load_train_data(data_folder_path=config.data_folder_path)
-
-        # Set up dataloader for easy access to shuffled data batches
-        train_data_loader = DataLoader(dataset=train_dataset, batch_size=config.batch_size, num_workers=4, shuffle=True, drop_last=True)
+        if(mode == 'x_vector'):
+            self.dataset.load_train_data(data_folder_path=config.data_folder_path)
+            train_data_loader = DataLoader(dataset=self.dataset, batch_size=config.batch_size, num_workers=4, shuffle=True, drop_last=True)
+        elif(mode == 'plda_classifier'):
+            train_data_loader = DataLoader(dataset=self.dataset, batch_size=config.batch_size, shuffle=True, drop_last=True)
         return train_data_loader
 
     def test_dataloader(self):
-        test_dataset = Dataset()
-        test_dataset.load_test_data(data_folder_path=config.data_folder_path)
-
-        # Set up dataloader for easy access to data batches
-        test_data_loader = DataLoader(dataset=test_dataset, batch_size=config.batch_size, num_workers=4, shuffle=False, drop_last=True)
+        if(mode == 'x_vector'):
+            self.dataset.load_test_data(data_folder_path=config.data_folder_path)
+            test_data_loader = DataLoader(dataset=self.dataset, batch_size=config.batch_size, num_workers=4, shuffle=False, drop_last=True)
+        elif(mode == 'plda_classifier'):
+            test_data_loader = DataLoader(dataset=self.dataset, batch_size=config.batch_size, shuffle=False, drop_last=True)
         return test_data_loader
 
 if __name__ == "__main__":
@@ -113,13 +120,14 @@ if __name__ == "__main__":
         model.load_state_dict(torch.load(config.model_path))
         model.eval()
 
-    trainer = pl.Trainer(accelerator='gpu', devices=1, max_epochs=config.num_epochs, log_every_n_steps=1, fast_dev_run=False)
 
     mode = 'x_vector'
+    trainer = pl.Trainer(accelerator='gpu', devices=1, max_epochs=config.num_epochs, log_every_n_steps=1, fast_dev_run=False)
     trainer.fit(model)
     trainer.test(model)
     
     mode = 'plda_classifier'
+    trainer = pl.Trainer(accelerator='gpu', devices=1, max_epochs=config.num_epochs, log_every_n_steps=1, fast_dev_run=False)
     trainer.fit(model)
     trainer.test(model)
 
