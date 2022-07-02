@@ -47,7 +47,7 @@ class XVectorModel(pl.LightningModule):
             out = self.output(out)  #TODO use softmax? nn.CrossEntropyLoss() appearently already includes a softmax
             
         elif(mode == 'plda_classifier'):
-            out = self.plda_layer(x)
+            out = self.output(x)
             
         return out
 
@@ -87,7 +87,7 @@ class XVectorModel(pl.LightningModule):
             for batch_output in test_step_outputs:
                 for x_vec, label in batch_output:
                     self.dataset.load_train_x_vec(x_vec, label)
-        self.dataset.change_mode('plda_classifier')
+            self.dataset.change_mode('plda_classifier')
         return test_step_outputs
     
     def configure_optimizers(self):
@@ -98,7 +98,7 @@ class XVectorModel(pl.LightningModule):
             self.dataset.load_train_data(data_folder_path=config.data_folder_path)
             train_data_loader = DataLoader(dataset=self.dataset, batch_size=config.batch_size, num_workers=4, shuffle=True, drop_last=True)
         elif(mode == 'plda_classifier'):
-            train_data_loader = DataLoader(dataset=self.dataset, batch_size=config.batch_size, shuffle=True, drop_last=True)
+            train_data_loader = DataLoader(dataset=self.dataset, batch_size=1, shuffle=True, drop_last=True)
         return train_data_loader
 
     def test_dataloader(self):
@@ -106,11 +106,11 @@ class XVectorModel(pl.LightningModule):
             self.dataset.load_test_data(data_folder_path=config.data_folder_path)
             test_data_loader = DataLoader(dataset=self.dataset, batch_size=config.batch_size, num_workers=4, shuffle=False, drop_last=True)
         elif(mode == 'plda_classifier'):
-            test_data_loader = DataLoader(dataset=self.dataset, batch_size=config.batch_size, shuffle=False, drop_last=True)
+            test_data_loader = DataLoader(dataset=self.dataset, batch_size=1, shuffle=False, drop_last=True)
         return test_data_loader
 
 if __name__ == "__main__":
-    config = Config(batch_size=10, load_existing_model=False)
+    config = Config(batch_size=10, load_existing_model=False, num_epochs=1)
 
     # Define neural network
     model = XVectorModel(config.input_size, config.hidden_size, config.num_classes)
@@ -119,7 +119,6 @@ if __name__ == "__main__":
     if(config.load_existing_model):
         model.load_state_dict(torch.load(config.model_path))
         model.eval()
-
 
     mode = 'x_vector'
     trainer = pl.Trainer(accelerator='gpu', devices=1, max_epochs=config.num_epochs, log_every_n_steps=1, fast_dev_run=False)
