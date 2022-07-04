@@ -2,95 +2,45 @@ import glob
 import math
 import os
 import random
+
 import numpy as np
 import torch
 from python_speech_features import mfcc
 from scipy.io import wavfile
 from torch.utils.data import Dataset
 
+
 class Dataset(Dataset): 
     def __init__(self):
         self.unique_labels = []
-        self.mode = 'x_vector'
 
         self.samples = []
         self.labels = []
         self.n_samples = 0
 
-        self.x_vectors = []
-        self.x_labels = []
-        self.n_vectors = 0
-
     # Returns the sample and class at the given index
     # Can be called as dataset[i] and works with dataloader
     def __getitem__(self, index):
-        if(self.mode == 'x_vector'):
-            return torch.from_numpy(self.samples[index]), self.unique_labels.index(self.labels[index])
-        elif(self.mode == 'plda_classifier'):
-            return self.x_vectors[index], self.x_labels[index]
+        return torch.from_numpy(self.samples[index]), self.unique_labels.index(self.labels[index])
 
     def __len__(self):
-        if(self.mode == 'x_vector'):
-            return self.n_samples
-        elif(self.mode == 'plda_classifier'):
-            return self.n_vectors
-
-    def change_mode(self, new_mode):
-        self.mode = new_mode
+        return self.n_samples
     
     # Load the training data and save all relevant info in arrays
     # TODO Preprocess data before this if neccessary
-    def load_train_data(self, mfcc_numcep=24, mfcc_nfilt=26, mfcc_nfft=512, data_folder_path='data'):
+    def load_train_data(self, mfcc_numcep=24, mfcc_nfilt=26, mfcc_nfft=512, data_folder_path='data', ):
         vox_train_path = data_folder_path + '/VoxCeleb/vox1_dev_wav/id1000*/*/00001.wav' #TODO replace id100* and 00001 with * to load all samples
-
-        # Get the paths to all the data samples
-        globs = glob.glob(vox_train_path)
-
-        # Get the class names from the paths
-        self.unique_labels = [os.path.basename(os.path.dirname(os.path.dirname(f))) for f in globs]
-        self.unique_labels = list(np.unique(self.unique_labels))
-
-        # Gat the list of samples, labels and the sampling rate
-        for i, g in enumerate(globs):
-            print("load train sample: ", g)
-            rate, sample = wavfile.read(g, np.dtype)
-
-            # Augment the sample with noise and/or reverbaraition
-            augmented_samples = self.augment_data(sample, data_folder_path=data_folder_path, num_of_aumented_samples=1)
-
-            clas = os.path.basename(os.path.dirname(os.path.dirname(g)))
-            sub_sample_length = int(rate * 3)
-
-            for aug_sample in augmented_samples:
-                # Split the sample into several 3 second long samples to increase number of samples and make samples the same length
-                # TODO maybe do this in preprocessing ahead of time
-                for j in range(math.floor(len(aug_sample)/sub_sample_length)):
-                    small_sample = aug_sample[j*sub_sample_length : j*sub_sample_length + sub_sample_length]
-                    small_sample = mfcc(small_sample, rate, numcep=mfcc_numcep, nfilt=mfcc_nfilt, nfft=mfcc_nfft)
-                    self.samples.append(np.array(small_sample))
-                    self.labels.append(clas)
-
-        self.n_samples = len(self.samples)
+        self.load_data(mfcc_numcep, mfcc_nfilt, mfcc_nfft, vox_train_path)
     
     # Load the testing data and save all relevant info in arrays
     # TODO Preprocess data before this if neccessary
     def load_test_data(self, mfcc_numcep=24, mfcc_nfilt=26, mfcc_nfft=512, data_folder_path='data'):
         vox_test_path = data_folder_path + '/VoxCeleb/vox1_test_wav/id103*/*/00001.wav' #TODO replace id100* and 00001 with * to load all samples
+        self.load_data(mfcc_numcep, mfcc_nfilt, mfcc_nfft, vox_test_path)
 
+    def load_data(self, mfcc_numcep, mfcc_nfilt, mfcc_nfft, data_folder_path):
         # Get the paths to all the data samples
-        globs = glob.glob(vox_test_path)
-        
-        #TODO remove this block without creating errors
-        self.unique_labels = [] #------------------------------
-        self.mode = 'x_vector' #------------------------------
-
-        self.samples = [] #------------------------------
-        self.labels = [] #------------------------------
-        self.n_samples = 0 #------------------------------
-
-        self.x_vectors = [] #------------------------------
-        self.x_labels = [] #------------------------------
-        self.n_vectors = 0 #------------------------------
+        globs = glob.glob(data_folder_path)
 
         # Get the class names from the paths
         self.unique_labels = self.unique_labels + [os.path.basename(os.path.dirname(os.path.dirname(f))) for f in globs]
@@ -115,18 +65,7 @@ class Dataset(Dataset):
                     small_sample = mfcc(small_sample, rate, numcep=mfcc_numcep, nfilt=mfcc_nfilt, nfft=mfcc_nfft)
                     self.samples.append(np.array(small_sample))
                     self.labels.append(clas)
-
         self.n_samples = len(self.samples)
-
-    def load_train_x_vec(self, x_vec, label):
-        self.x_vectors.append(x_vec)
-        self.x_labels.append(label)
-        self.n_vectors = len(self.x_vectors)
-
-    def load_test_x_vec(self, x_vec, label):
-        self.x_vectors.append(x_vec)
-        self.x_labels.append(label)
-        self.n_vectors = len(self.x_vectors)
 
     def augment_data(self, sample, data_folder_path='data', num_of_aumented_samples=3):
         musan_music_path = data_folder_path + '/musan_split/music/*/*/*.wav'

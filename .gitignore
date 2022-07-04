@@ -12,6 +12,7 @@ build/
 data/
 runs/
 lightning_logs/
+x_vectors/
 develop-eggs/
 dist/
 downloads/
