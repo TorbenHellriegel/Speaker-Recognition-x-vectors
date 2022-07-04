@@ -46,7 +46,7 @@ class XVectorModel(pl.LightningModule):
             
             out = self.output(out)  #TODO use softmax? nn.CrossEntropyLoss() appearently already includes a softmax
             
-        elif(mode == 'plda_classifier'):
+        elif(mode == 'plda_classifier'): #TODO implement actual plda classifier
             out = self.output(x)
             
         return out
