@@ -3,7 +3,7 @@ class Config:
                 batch_size=100,
                 input_size=24,
                 hidden_size=512,
-                num_classes=10,
+                num_classes=10, #TODO adjust
                 learning_rate=0.001,
                 num_epochs=5,
                 load_existing_model=True,

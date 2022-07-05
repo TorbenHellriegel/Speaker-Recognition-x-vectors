@@ -30,17 +30,17 @@ class Dataset(Dataset):
     # TODO Preprocess data before this if neccessary
     def load_train_data(self, mfcc_numcep=24, mfcc_nfilt=26, mfcc_nfft=512, data_folder_path='data', ):
         vox_train_path = data_folder_path + '/VoxCeleb/vox1_dev_wav/id1000*/*/00001.wav' #TODO replace id100* and 00001 with * to load all samples
-        self.load_data(mfcc_numcep, mfcc_nfilt, mfcc_nfft, vox_train_path)
+        self.load_data(mfcc_numcep, mfcc_nfilt, mfcc_nfft, data_folder_path, vox_train_path)
     
     # Load the testing data and save all relevant info in arrays
     # TODO Preprocess data before this if neccessary
     def load_test_data(self, mfcc_numcep=24, mfcc_nfilt=26, mfcc_nfft=512, data_folder_path='data'):
         vox_test_path = data_folder_path + '/VoxCeleb/vox1_test_wav/id103*/*/00001.wav' #TODO replace id100* and 00001 with * to load all samples
-        self.load_data(mfcc_numcep, mfcc_nfilt, mfcc_nfft, vox_test_path)
+        self.load_data(mfcc_numcep, mfcc_nfilt, mfcc_nfft, data_folder_path, vox_test_path)
 
-    def load_data(self, mfcc_numcep, mfcc_nfilt, mfcc_nfft, data_folder_path):
+    def load_data(self, mfcc_numcep, mfcc_nfilt, mfcc_nfft, data_folder_path, voxceleb_folder_path):
         # Get the paths to all the data samples
-        globs = glob.glob(data_folder_path)
+        globs = glob.glob(voxceleb_folder_path)
 
         # Get the class names from the paths
         self.unique_labels = self.unique_labels + [os.path.basename(os.path.dirname(os.path.dirname(f))) for f in globs]
@@ -48,11 +48,11 @@ class Dataset(Dataset):
 
         # Gat the list of samples, labels and the sampling rate
         for g in globs:
-            print("load test sample: ", g)
+            print("load sample: ", g)
             rate, sample = wavfile.read(g, np.dtype)
 
             # Augment the sample with noise and/or reverbaraition
-            augmented_samples = self.augment_data(sample, data_folder_path=data_folder_path, num_of_aumented_samples=1)
+            augmented_samples = self.augment_data(sample, data_folder_path=data_folder_path)
 
             clas = os.path.basename(os.path.dirname(os.path.dirname(g)))
             sub_sample_length = int(rate * 3)
@@ -68,17 +68,73 @@ class Dataset(Dataset):
         self.n_samples = len(self.samples)
 
     def augment_data(self, sample, data_folder_path='data', num_of_aumented_samples=3):
-        musan_music_path = data_folder_path + '/musan_split/music/*/*/*.wav'
-        musan_speech_path = data_folder_path + '/musan_split/speech/*/*/*.wav'
-        rir_mediumroom_path = data_folder_path + '/RIRS_NOISES/simulated_rirs/mediumroom/*/*.wav'
-        rir_smallroom_path = data_folder_path + '/RIRS_NOISES/simulated_rirs/smallroom/*/*.wav'
-        augmentation_types = [musan_music_path, musan_speech_path, rir_mediumroom_path, rir_smallroom_path]
-
         augmented_samples = [sample]
+
         for i in range(num_of_aumented_samples-1):
-            augmentation_type = random.choice(augmentation_types)
-            augmentation = random.choice(glob.glob(augmentation_type))
-            _, aug = wavfile.read(augmentation, np.dtype)
-            augmented_samples.append(sample + aug)
+            augmentation_type = random.randint(0, 2)
+
+            if(augmentation_type == 0):
+                aug_sample = self.augment_musan_music(sample, data_folder_path=data_folder_path)
+            elif(augmentation_type == 1):
+                aug_sample = self.augment_musan_speech(sample, data_folder_path=data_folder_path)
+            elif(augmentation_type == 2):
+                aug_sample = self.augment_rir(sample, data_folder_path=data_folder_path)
+            else:
+                aug_sample = sample
+
+            augmented_samples.append(aug_sample)
 
         return augmented_samples
+
+    def augment_musan_music(self, sample, data_folder_path='data'):
+        musan_music_path = data_folder_path + '/musan/music/rfm/music-rfm-0101.wav'
+
+        song_path = random.choice(glob.glob(musan_music_path))
+        print('load sample: augmenting with musan music', song_path)
+        _, song = wavfile.read(song_path, np.dtype)
+
+        song = self.adjust_augmentation_length(len(sample), song)
+        
+        aug_sample = sample + song #TODO adjust SNR (5-15dB)
+        return aug_sample
+
+    def augment_musan_speech(self, sample, data_folder_path='data'):
+        musan_speech_path = data_folder_path + '/musan/speech/*/*.wav'
+        print('load sample: augmenting with musan speech')
+
+        speakers = np.array([], dtype=np.int16)
+        for i in range(random.randint(3, 7)):
+            speaker_path = random.choice(glob.glob(musan_speech_path))
+            _, speaker = wavfile.read(speaker_path, np.dtype)
+            if len(speakers) < len(speaker):
+                spkr = speaker.copy()
+                spkr[:len(speakers)] += speakers
+            else:
+                spkr = speakers.copy()
+                spkr[:len(speaker)] += speaker
+            speakers = spkr
+        
+        speakers = self.adjust_augmentation_length(len(sample), speakers)
+
+        aug_sample = sample + speakers #TODO adjust SNR (13-20dB)
+        return aug_sample
+
+    def augment_rir(self, sample, data_folder_path='data'):
+        rir_noise_path = data_folder_path + '/RIRS_NOISES/simulated_rirs/*/*/*.wav'
+        print('load sample: augmenting with rir')
+
+        rir_path = random.choice(glob.glob(rir_noise_path))
+        _, rir = wavfile.read(rir_path, np.dtype)
+        
+        aug_sample = sample #np.dot(sample, rir) #TODO implement RIR augmentation
+        return aug_sample
+
+    def adjust_augmentation_length(self, sample_length, augmentation):
+        if(len(augmentation) > sample_length):
+            augmentation = augmentation[:sample_length]
+        else:
+            new_augmentation = list(augmentation)
+            while(sample_length > len(new_augmentation)):
+                new_augmentation =new_augmentation + list(augmentation)
+            augmentation = new_augmentation[:sample_length]
+        return augmentation
