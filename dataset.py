@@ -87,15 +87,15 @@ class Dataset(Dataset):
         return augmented_samples
 
     def augment_musan_music(self, sample, data_folder_path='data'):
-        musan_music_path = data_folder_path + '/musan/music/rfm/music-rfm-0101.wav'
+        musan_music_path = data_folder_path + '/musan/music/*/*.wav'
+        print('load sample: augmenting with musan music')
 
         song_path = random.choice(glob.glob(musan_music_path))
-        print('load sample: augmenting with musan music', song_path)
         _, song = wavfile.read(song_path, np.dtype)
 
         song = self.adjust_augmentation_length(len(sample), song)
         
-        aug_sample = sample + song #TODO adjust SNR (5-15dB)
+        aug_sample = self.add_with_certain_snr(sample, song, min_snr_db=5, max_snr_db=15)
         return aug_sample
 
     def augment_musan_speech(self, sample, data_folder_path='data'):
@@ -116,8 +116,32 @@ class Dataset(Dataset):
         
         speakers = self.adjust_augmentation_length(len(sample), speakers)
 
-        aug_sample = sample + speakers #TODO adjust SNR (13-20dB)
+        aug_sample = self.add_with_certain_snr(sample, speakers, min_snr_db=13, max_snr_db=20)
         return aug_sample
+
+    def adjust_augmentation_length(self, sample_length, augmentation):
+        if(len(augmentation) > sample_length):
+            augmentation = augmentation[:sample_length]
+        else:
+            new_augmentation = list(augmentation)
+            while(sample_length > len(new_augmentation)):
+                new_augmentation = new_augmentation + list(augmentation)
+            augmentation = np.array(new_augmentation[:sample_length])
+        return augmentation
+
+    def add_with_certain_snr(self, sample, noise, min_snr_db=5, max_snr_db=20):
+        sample = sample.astype('int64')
+        noise = noise.astype('int64')
+
+        sample_rms = np.sqrt(np.mean(sample**2))
+        noise_rms = np.sqrt(np.mean(noise**2))
+        wanted_snr = random.randint(min_snr_db, max_snr_db)
+        wanted_noise_rms = np.sqrt(sample_rms**2 / 10**(wanted_snr/10))
+
+        new_noise = noise * wanted_noise_rms/noise_rms
+        noisy_sample = sample + new_noise
+
+        return noisy_sample
 
     def augment_rir(self, sample, data_folder_path='data'):
         rir_noise_path = data_folder_path + '/RIRS_NOISES/simulated_rirs/*/*/*.wav'
@@ -128,13 +152,3 @@ class Dataset(Dataset):
         
         aug_sample = sample #np.dot(sample, rir) #TODO implement RIR augmentation
         return aug_sample
-
-    def adjust_augmentation_length(self, sample_length, augmentation):
-        if(len(augmentation) > sample_length):
-            augmentation = augmentation[:sample_length]
-        else:
-            new_augmentation = list(augmentation)
-            while(sample_length > len(new_augmentation)):
-                new_augmentation =new_augmentation + list(augmentation)
-            augmentation = new_augmentation[:sample_length]
-        return augmentation

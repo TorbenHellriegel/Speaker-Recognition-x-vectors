@@ -1,4 +1,3 @@
-import numpy as np
 import torch
 
 x = torch.tensor([  [[1], [2], [3], [4], [5], [6], [7], [8], [9], [10], [11], [12], [13], [14], [15]],
@@ -39,9 +38,9 @@ print("x:", x.shape)
 print("context:", context)
 print("new_x:", new_x.shape)
 
-# Can be done in a single line. Maybe this saves space because there are no new variables but I'm not sure what exactly python does in the background
 context = [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5]
-x = torch.cat([x[:, context[len(context)]+cc:context[0]+cc, :] if cc!=context[len(context)] else x[:, context[len(context)]+cc:, :] for cc in context], 2)
+x_context = get_time_context(x, context)
+new_x = torch.cat(x_context, 2)
 print(new_x)
 print("x:", x.shape)
 print("context:", context)
