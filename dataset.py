@@ -37,7 +37,7 @@ class Dataset(Dataset):
     # Load the testing data and save all relevant info in arrays
     # TODO Preprocess data before this if neccessary
     def load_test_data(self, mfcc_numcep=24, mfcc_nfilt=26, mfcc_nfft=512, data_folder_path='data'):
-        vox_test_path = data_folder_path + '/VoxCeleb/vox1_test_wav/id103*/*/00001.wav' #TODO replace id100* and 00001 with * to load all samples
+        vox_test_path = data_folder_path + '/VoxCeleb/vox1_test_wav/id103*/*/00001.wav' #TODO replace id103* and 00001 with * to load all samples
         self.load_data(mfcc_numcep, mfcc_nfilt, mfcc_nfft, data_folder_path, vox_test_path)
 
     def load_data(self, mfcc_numcep, mfcc_nfilt, mfcc_nfft, data_folder_path, voxceleb_folder_path):
@@ -161,7 +161,7 @@ class Dataset(Dataset):
         return noisy_sample
 
     def augment_rir(self, sample, data_folder_path='data'):
-        rir_noise_path = data_folder_path + '/RIRS_NOISES_old/simulated_rirs/*/*/*.wav'
+        rir_noise_path = data_folder_path + '/RIRS_NOISES/simulated_rirs/*/*/*.wav'
         print('load sample: augmenting with rir')
 
         rir_path = random.choice(glob.glob(rir_noise_path))

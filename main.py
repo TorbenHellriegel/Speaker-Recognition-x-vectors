@@ -54,7 +54,7 @@ class XVectorModel(pl.LightningModule):
         x_vec = self.segment_layer6.forward(out)
         return x_vec
 
-    #TODO save extra data for the graphs in the thesis
+    #TODO save data for the thesis
     # what data is important for the thesis?
     # loss for a graph showing decreasing loss
     # prdiction results from the plda

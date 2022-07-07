@@ -3,7 +3,7 @@ class Config:
                 batch_size=100,
                 input_size=24,
                 hidden_size=512,
-                num_classes=10, #TODO adjust
+                num_classes=1211, #TODO set classes to all id or only training id? 1211 or 1251
                 learning_rate=0.001,
                 num_epochs=5,
                 load_existing_model=True,
@@ -11,7 +11,6 @@ class Config:
                 data_folder_path='../../../../../../../../../data/7hellrie'):
                 
         self.data_folder_path = data_folder_path
-        # X-vector model parameters
         self.batch_size = batch_size
         self.input_size = input_size
         self.hidden_size = hidden_size
