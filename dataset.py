@@ -91,7 +91,7 @@ class Dataset(Dataset):
         print('load sample: augmenting with musan music')
 
         song_path = random.choice(glob.glob(musan_music_path))
-        _, song = wavfile.read(song_path, np.dtype)
+        _, song = wavfile.read(song_path, np.dtype) #TODO maybe adjust sampling rate
 
         song = self.adjust_augmentation_length(len(sample), song)
         
@@ -105,7 +105,7 @@ class Dataset(Dataset):
         speakers = np.array([], dtype=np.int16)
         for i in range(random.randint(3, 7)):
             speaker_path = random.choice(glob.glob(musan_speech_path))
-            _, speaker = wavfile.read(speaker_path, np.dtype)
+            _, speaker = wavfile.read(speaker_path, np.dtype) #TODO maybe adjust sampling rate
             if len(speakers) < len(speaker):
                 spkr = speaker.copy()
                 spkr[:len(speakers)] += speakers
@@ -148,7 +148,7 @@ class Dataset(Dataset):
         print('load sample: augmenting with rir')
 
         rir_path = random.choice(glob.glob(rir_noise_path))
-        _, rir = wavfile.read(rir_path, np.dtype)
+        _, rir = wavfile.read(rir_path, np.dtype) #TODO maybe adjust sampling rate
         
         aug_sample = sample #np.dot(sample, rir) #TODO implement RIR augmentation
         return aug_sample
