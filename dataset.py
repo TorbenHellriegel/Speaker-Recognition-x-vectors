@@ -55,7 +55,7 @@ class Dataset(Dataset):
             print("load sample: ", g)
             rate, sample = wavfile.read(g, np.dtype)
             sample = resampy.resample(sample, rate, self.sampling_rate)
-            rate = 16000
+            rate = self.sampling_rate
 
             # Augment the sample with noise and/or reverbaraition
             augmented_samples = self.augment_data(sample, data_folder_path=data_folder_path)
