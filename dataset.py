@@ -2,14 +2,16 @@ import glob
 import math
 import os
 import random
-import resampy
+
 import numpy as np
+import resampy
 import torch
 from python_speech_features import mfcc
 from scipy.io import wavfile
 from scipy.signal import convolve
 from torch.utils.data import Dataset
 
+EPS = 1e-20
 
 class Dataset(Dataset): 
     def __init__(self):
@@ -75,13 +77,15 @@ class Dataset(Dataset):
         augmented_samples = [sample]
 
         for i in range(num_of_aumented_samples-1):
-            augmentation_type = random.randint(0, 2)
+            augmentation_type = random.randint(0, 3)
 
             if(augmentation_type == 0):
                 aug_sample = self.augment_musan_music(sample, data_folder_path=data_folder_path)
             elif(augmentation_type == 1):
                 aug_sample = self.augment_musan_speech(sample, data_folder_path=data_folder_path)
             elif(augmentation_type == 2):
+                aug_sample = self.augment_musan_noise(sample, data_folder_path=data_folder_path)
+            elif(augmentation_type == 3):
                 aug_sample = self.augment_rir(sample, data_folder_path=data_folder_path)
             else:
                 aug_sample = sample
@@ -91,7 +95,7 @@ class Dataset(Dataset):
         return augmented_samples
 
     def augment_musan_music(self, sample, data_folder_path='data'):
-        musan_music_path = data_folder_path + '/musan_old/music/*/*.wav'
+        musan_music_path = data_folder_path + '/musan/music/*/*.wav'
         print('load sample: augmenting with musan music')
 
         song_path = random.choice(glob.glob(musan_music_path))
@@ -103,7 +107,7 @@ class Dataset(Dataset):
         return aug_sample
 
     def augment_musan_speech(self, sample, data_folder_path='data'):
-        musan_speech_path = data_folder_path + '/musan_old/speech/*/*.wav'
+        musan_speech_path = data_folder_path + '/musan/speech/*/*.wav'
         print('load sample: augmenting with musan speech')
 
         speakers = np.array([], dtype=np.int16)
@@ -123,8 +127,8 @@ class Dataset(Dataset):
         aug_sample = self.add_with_certain_snr(sample, speakers, min_snr_db=13, max_snr_db=20)
         return aug_sample
 
-    '''def augment_musan_noise(self, sample, data_folder_path='data'):
-        musan_noise_path = data_folder_path + '/musan_old/noise/*/*.wav'
+    def augment_musan_noise(self, sample, data_folder_path='data'):
+        musan_noise_path = data_folder_path + '/musan/noise/*/*.wav'
         print('load sample: augmenting with musan noise')
         
         for i in range(0, len(sample), self.sampling_rate):
@@ -134,7 +138,7 @@ class Dataset(Dataset):
             noise = self.adjust_augmentation_length(len(sample[i:]), noise)
             sample[i:] = self.add_with_certain_snr(sample[i:], noise, min_snr_db=0, max_snr_db=15)
 
-        return sample'''
+        return sample
 
     def adjust_augmentation_length(self, sample_length, augmentation):
         if(len(augmentation) > sample_length):
@@ -144,6 +148,7 @@ class Dataset(Dataset):
             while(sample_length > len(new_augmentation)):
                 new_augmentation = new_augmentation + list(augmentation)
             augmentation = np.array(new_augmentation[:sample_length])
+
         return augmentation
 
     def add_with_certain_snr(self, sample, noise, min_snr_db=5, max_snr_db=20):
@@ -155,9 +160,8 @@ class Dataset(Dataset):
         wanted_snr = random.randint(min_snr_db, max_snr_db)
         wanted_noise_rms = np.sqrt(sample_rms**2 / 10**(wanted_snr/10))
 
-        new_noise = noise * wanted_noise_rms/noise_rms
+        new_noise = noise * wanted_noise_rms/(noise_rms+EPS)
         noisy_sample = sample + new_noise
-
         return noisy_sample
 
     def augment_rir(self, sample, data_folder_path='data'):
