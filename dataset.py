@@ -2,21 +2,23 @@ import glob
 import math
 import os
 import random
-
+import resampy
 import numpy as np
 import torch
 from python_speech_features import mfcc
 from scipy.io import wavfile
+from scipy.signal import convolve
 from torch.utils.data import Dataset
 
 
 class Dataset(Dataset): 
     def __init__(self):
-        self.unique_labels = []
-
         self.samples = []
         self.labels = []
+
+        self.sampling_rate = 16000
         self.n_samples = 0
+        self.unique_labels = []
 
     # Returns the sample and class at the given index
     # Can be called as dataset[i] and works with dataloader
@@ -50,6 +52,8 @@ class Dataset(Dataset):
         for g in globs:
             print("load sample: ", g)
             rate, sample = wavfile.read(g, np.dtype)
+            sample = resampy.resample(sample, rate, self.sampling_rate)
+            rate = 16000
 
             # Augment the sample with noise and/or reverbaraition
             augmented_samples = self.augment_data(sample, data_folder_path=data_folder_path)
@@ -87,25 +91,26 @@ class Dataset(Dataset):
         return augmented_samples
 
     def augment_musan_music(self, sample, data_folder_path='data'):
-        musan_music_path = data_folder_path + '/musan/music/*/*.wav'
+        musan_music_path = data_folder_path + '/musan_old/music/*/*.wav'
         print('load sample: augmenting with musan music')
 
         song_path = random.choice(glob.glob(musan_music_path))
-        _, song = wavfile.read(song_path, np.dtype) #TODO maybe adjust sampling rate
+        rate, song = wavfile.read(song_path, np.dtype)
+        song = resampy.resample(song, rate, self.sampling_rate)
 
         song = self.adjust_augmentation_length(len(sample), song)
-        
         aug_sample = self.add_with_certain_snr(sample, song, min_snr_db=5, max_snr_db=15)
         return aug_sample
 
     def augment_musan_speech(self, sample, data_folder_path='data'):
-        musan_speech_path = data_folder_path + '/musan/speech/*/*.wav'
+        musan_speech_path = data_folder_path + '/musan_old/speech/*/*.wav'
         print('load sample: augmenting with musan speech')
 
         speakers = np.array([], dtype=np.int16)
         for i in range(random.randint(3, 7)):
             speaker_path = random.choice(glob.glob(musan_speech_path))
-            _, speaker = wavfile.read(speaker_path, np.dtype) #TODO maybe adjust sampling rate
+            rate, speaker = wavfile.read(speaker_path, np.dtype)
+            speaker = resampy.resample(speaker, rate, self.sampling_rate)
             if len(speakers) < len(speaker):
                 spkr = speaker.copy()
                 spkr[:len(speakers)] += speakers
@@ -115,9 +120,21 @@ class Dataset(Dataset):
             speakers = spkr
         
         speakers = self.adjust_augmentation_length(len(sample), speakers)
-
         aug_sample = self.add_with_certain_snr(sample, speakers, min_snr_db=13, max_snr_db=20)
         return aug_sample
+
+    '''def augment_musan_noise(self, sample, data_folder_path='data'):
+        musan_noise_path = data_folder_path + '/musan_old/noise/*/*.wav'
+        print('load sample: augmenting with musan noise')
+        
+        for i in range(0, len(sample), self.sampling_rate):
+            noise_path = random.choice(glob.glob(musan_noise_path))
+            rate, noise = wavfile.read(noise_path, np.dtype)
+            noise = resampy.resample(noise, rate, self.sampling_rate)
+            noise = self.adjust_augmentation_length(len(sample[i:]), noise)
+            sample[i:] = self.add_with_certain_snr(sample[i:], noise, min_snr_db=0, max_snr_db=15)
+
+        return sample'''
 
     def adjust_augmentation_length(self, sample_length, augmentation):
         if(len(augmentation) > sample_length):
@@ -144,11 +161,11 @@ class Dataset(Dataset):
         return noisy_sample
 
     def augment_rir(self, sample, data_folder_path='data'):
-        rir_noise_path = data_folder_path + '/RIRS_NOISES/simulated_rirs/*/*/*.wav'
+        rir_noise_path = data_folder_path + '/RIRS_NOISES_old/simulated_rirs/*/*/*.wav'
         print('load sample: augmenting with rir')
 
         rir_path = random.choice(glob.glob(rir_noise_path))
-        _, rir = wavfile.read(rir_path, np.dtype) #TODO maybe adjust sampling rate
+        _, rir = wavfile.read(rir_path, np.dtype) #TODO neccessary to adjust the sampling rat for rir?
         
-        aug_sample = sample #np.dot(sample, rir) #TODO implement RIR augmentation
+        aug_sample = convolve(sample, rir)
         return aug_sample
