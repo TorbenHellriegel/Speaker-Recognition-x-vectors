@@ -138,10 +138,10 @@ class Dataset(Dataset):
             rate, noise = wavfile.read(noise_path, np.dtype)
             noise = resampy.resample(noise, rate, self.sampling_rate)
             noise = self.adjust_augmentation_length(self.sampling_rate, noise)
-            aug_sample[i:i+self.sampling_rate] = self.add_with_certain_snr(sample[i:i+self.sampling_rate], noise, min_snr_db=0, max_snr_db=15)
+            sample[i:i+self.sampling_rate] = self.add_with_certain_snr(sample[i:i+self.sampling_rate], noise, min_snr_db=0, max_snr_db=15)
 
-        aug_sample = aug_sample.astype(np.int16)
-        return aug_sample
+        sample = sample.astype(np.int16)
+        return sample
 
     def adjust_augmentation_length(self, sample_length, augmentation):
         if(len(augmentation) > sample_length):
