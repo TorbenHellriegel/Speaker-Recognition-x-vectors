@@ -3,7 +3,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-
 class TdnnLayer(nn.Module):
     def __init__(self, input_size=24, output_size=512, context=[0]):
         super(TdnnLayer, self).__init__()

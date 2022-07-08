@@ -8,7 +8,7 @@ import resampy
 import torch
 from python_speech_features import mfcc
 from scipy.io import wavfile
-from scipy.signal import convolve
+from scipy.signal import convolve, fftconvolve
 from torch.utils.data import Dataset
 
 EPS = 1e-20
@@ -94,7 +94,7 @@ class Dataset(Dataset):
 
         return augmented_samples
 
-    def augment_musan_music(self, sample, data_folder_path='data'):
+    def augment_musan_music(self, sample, data_folder_path='data'): #TODO maybe offset slow starting music
         musan_music_path = data_folder_path + '/musan/music/*/*.wav'
         print('load sample: augmenting with musan music')
 
@@ -104,6 +104,7 @@ class Dataset(Dataset):
 
         song = self.adjust_augmentation_length(len(sample), song)
         aug_sample = self.add_with_certain_snr(sample, song, min_snr_db=5, max_snr_db=15)
+        aug_sample = aug_sample.astype(np.int16)
         return aug_sample
 
     def augment_musan_speech(self, sample, data_folder_path='data'):
@@ -125,20 +126,22 @@ class Dataset(Dataset):
         
         speakers = self.adjust_augmentation_length(len(sample), speakers)
         aug_sample = self.add_with_certain_snr(sample, speakers, min_snr_db=13, max_snr_db=20)
+        aug_sample = aug_sample.astype(np.int16)
         return aug_sample
 
-    def augment_musan_noise(self, sample, data_folder_path='data'):
+    def augment_musan_noise(self, sample, data_folder_path='data'): #TODO leave noise at 1 sec each or overlap?
         musan_noise_path = data_folder_path + '/musan/noise/*/*.wav'
         print('load sample: augmenting with musan noise')
         
-        for i in range(0, len(sample), self.sampling_rate):
+        for i in range(0, len(sample)-self.sampling_rate, self.sampling_rate):
             noise_path = random.choice(glob.glob(musan_noise_path))
             rate, noise = wavfile.read(noise_path, np.dtype)
             noise = resampy.resample(noise, rate, self.sampling_rate)
-            noise = self.adjust_augmentation_length(len(sample[i:]), noise)
-            sample[i:] = self.add_with_certain_snr(sample[i:], noise, min_snr_db=0, max_snr_db=15)
+            noise = self.adjust_augmentation_length(self.sampling_rate, noise)
+            aug_sample[i:i+self.sampling_rate] = self.add_with_certain_snr(sample[i:i+self.sampling_rate], noise, min_snr_db=0, max_snr_db=15)
 
-        return sample
+        aug_sample = aug_sample.astype(np.int16)
+        return aug_sample
 
     def adjust_augmentation_length(self, sample_length, augmentation):
         if(len(augmentation) > sample_length):
@@ -170,6 +173,13 @@ class Dataset(Dataset):
 
         rir_path = random.choice(glob.glob(rir_noise_path))
         _, rir = wavfile.read(rir_path, np.dtype) #TODO neccessary to adjust the sampling rat for rir?
+        aug_sample = fftconvolve(sample, rir)
+        aug_sample = aug_sample / abs(aug_sample).max()
+
+        sample_max = abs(sample).max()
+        aug_max = abs(aug_sample).max()
+        aug_sample = aug_sample * (sample_max/aug_max)
+        aug_sample = sample + aug_sample[:len(sample)]
         
-        aug_sample = convolve(sample, rir)
+        aug_sample = aug_sample.astype(np.int16)
         return aug_sample

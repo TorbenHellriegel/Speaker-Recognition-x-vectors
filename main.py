@@ -10,7 +10,6 @@ from config import Config
 from dataset import Dataset
 from tdnn import TdnnLayer
 
-
 class XVectorModel(pl.LightningModule):
     def __init__(self, input_size, hidden_size, num_classes):
         super().__init__()

@@ -3,7 +3,7 @@ class Config:
                 batch_size=100,
                 input_size=24,
                 hidden_size=512,
-                num_classes=1211, #TODO set classes to all id or only training id? 1211 or 1251
+                num_classes=1211, #TODO num classes of the training set or also the test set? 1211 or 1251
                 learning_rate=0.001,
                 num_epochs=5,
                 load_existing_model=True,
