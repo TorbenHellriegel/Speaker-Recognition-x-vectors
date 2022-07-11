@@ -91,11 +91,11 @@ class XVectorModel(pl.LightningModule):
         return test_data_loader
 
 if __name__ == "__main__": #TODO figure out how to keep long process running in background
-    config = Config(batch_size=10, load_existing_model=True, num_epochs=5) #TODO adjust batch epoch etc.
+    config = Config(batch_size=100, load_existing_model=True, num_epochs=10) #TODO adjust batch epoch etc.
 
     # Define neural network
     model = XVectorModel(config.input_size, config.hidden_size, config.num_classes) #TODO num classes of the training set or also the test set
-    trainer = pl.Trainer(accelerator='gpu', devices=1, max_epochs=config.num_epochs, log_every_n_steps=1, fast_dev_run=False) #TODO adjust log_every_n_steps
+    trainer = pl.Trainer(accelerator='gpu', devices=1, max_epochs=config.num_epochs, log_every_n_steps=10, fast_dev_run=False) #TODO adjust log_every_n_steps
     # Maybe load an existing pretrained model dictionary
     if(config.load_existing_model):
         model.load_state_dict(torch.load(config.model_path))
@@ -103,10 +103,10 @@ if __name__ == "__main__": #TODO figure out how to keep long process running in 
 
     # Train the x-vector model
     trainer.fit(model)
-    torch.save(model.state_dict(), config.model_path)
+    # torch.save(model.state_dict(), config.model_path)
 
     # Extract the x-vectors
     x_vector = []
     trainer.test(model)
     x_vector = pd.DataFrame(x_vector)
-    x_vector.to_csv('x_vectors/x_vector.csv')
+    # x_vector.to_csv('x_vectors/x_vector.csv')
