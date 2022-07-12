@@ -25,21 +25,21 @@ class Dataset(Dataset):
     # Returns the sample and class at the given index
     # Can be called as dataset[i] and works with dataloader
     def __getitem__(self, index):
-        return torch.from_numpy(self.samples[index]), self.unique_labels.index(self.labels[index])
+        return torch.from_numpy(self.samples[index]), self.unique_labels.index(self.labels[index]) #TODO load data here also augment data!!!!!
 
     def __len__(self):
         return self.n_samples
     
     # Load the training data and save all relevant info in arrays
     # TODO Preprocess data before this if neccessary
-    def load_train_data(self, mfcc_numcep=24, mfcc_nfilt=26, mfcc_nfft=512, data_folder_path='data', ):
-        vox_train_path = data_folder_path + '/VoxCeleb/vox1_dev_wav/id100*/*/*.wav' #TODO replace id100* with * to load all samples
+    def load_train_data(self, mfcc_numcep=24, mfcc_nfilt=26, mfcc_nfft=512, data_folder_path='data', ): #TODO os.path!!!!!!
+        vox_train_path = data_folder_path + '/VoxCeleb/vox1_dev_wav/id1000*/*/00001.wav' #TODO replace id100* and 00001 with * to load all samples
         self.load_data(mfcc_numcep, mfcc_nfilt, mfcc_nfft, data_folder_path, vox_train_path)
     
     # Load the testing data and save all relevant info in arrays
     # TODO Preprocess data before this if neccessary
     def load_test_data(self, mfcc_numcep=24, mfcc_nfilt=26, mfcc_nfft=512, data_folder_path='data'):
-        vox_test_path = data_folder_path + '/VoxCeleb/vox1_test_wav/id103*/*/*.wav' #TODO replace id103* with * to load all samples
+        vox_test_path = data_folder_path + '/VoxCeleb/vox1_test_wav/id103*/*/00001.wav' #TODO replace id103* and 00001 with * to load all samples
         self.load_data(mfcc_numcep, mfcc_nfilt, mfcc_nfft, data_folder_path, vox_test_path)
 
     def load_data(self, mfcc_numcep, mfcc_nfilt, mfcc_nfft, data_folder_path, voxceleb_folder_path):
@@ -53,7 +53,7 @@ class Dataset(Dataset):
         # Gat the list of samples, labels and the sampling rate
         for g in globs:
             print("load sample: ", g)
-            rate, sample = wavfile.read(g, np.dtype)
+            rate, sample = wavfile.read(g, np.dtype) #TODO torch.load!!!!
             sample = resampy.resample(sample, rate, self.sampling_rate)
             rate = self.sampling_rate
 

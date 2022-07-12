@@ -37,7 +37,7 @@ class XVectorModel(pl.LightningModule):
     def forward(self, x):
         out = self.time_context_layers(x)
 
-        out = self.stat_pool(out)
+        out = self.stat_pool(out) #2d
 
         out = F.relu(self.segment_layer6(out))
         out = F.relu(self.segment_layer7(out))
@@ -91,11 +91,11 @@ class XVectorModel(pl.LightningModule):
         return test_data_loader
 
 if __name__ == "__main__": #TODO figure out how to keep long process running in background
-    config = Config(batch_size=100, load_existing_model=True, num_epochs=10) #TODO adjust batch epoch etc.
+    config = Config(batch_size=10, load_existing_model=True, num_epochs=5) #TODO adjust batch (16, 32) epoch etc.
 
     # Define neural network
     model = XVectorModel(config.input_size, config.hidden_size, config.num_classes) #TODO num classes of the training set or also the test set
-    trainer = pl.Trainer(accelerator='gpu', devices=1, max_epochs=config.num_epochs, log_every_n_steps=10, fast_dev_run=False) #TODO adjust log_every_n_steps
+    trainer = pl.Trainer(accelerator='ddp', devices=2, max_epochs=config.num_epochs, log_every_n_steps=10, fast_dev_run=False) #TODO adjust log_every_n_steps
     # Maybe load an existing pretrained model dictionary
     if(config.load_existing_model):
         model.load_state_dict(torch.load(config.model_path))
@@ -103,7 +103,8 @@ if __name__ == "__main__": #TODO figure out how to keep long process running in 
 
     # Train the x-vector model
     trainer.fit(model)
-    # torch.save(model.state_dict(), config.model_path)
+    #TODO logger accuracy cossentropyloss (plda)
+    #TODO model checkpoint
 
     # Extract the x-vectors
     x_vector = []
