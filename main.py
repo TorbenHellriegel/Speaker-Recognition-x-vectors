@@ -112,4 +112,12 @@ if __name__ == "__main__": #TODO figure out how to keep long process running in 
     x_vector = pd.DataFrame(x_vector)
     # x_vector.to_csv('x_vectors/x_vector.csv')
 
-#TODO calc length of all samples
+#153516 sample each 3 sec
+#460548 sec
+#7676 min
+#127 stunden
+
+#153516 sample average 8.4 sec
+#1265760 sec
+#21096 min
+#350 stunden
