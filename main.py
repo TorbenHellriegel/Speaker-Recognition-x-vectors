@@ -110,3 +110,5 @@ if __name__ == "__main__": #TODO figure out how to keep long process running in 
     trainer.test(model)
     x_vector = pd.DataFrame(x_vector)
     # x_vector.to_csv('x_vectors/x_vector.csv')
+
+#TODO calc length of all samples
