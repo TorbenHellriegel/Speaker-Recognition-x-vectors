@@ -29,7 +29,6 @@ class TdnnLayer(nn.Module):
 
         return x
 
-# check time_context_test.py for examples on how this works
 def get_time_context(x, c=[0]):
     l = len(c) - 1
     xc =   [x[:, c[l]+cc:c[0]+cc, :]

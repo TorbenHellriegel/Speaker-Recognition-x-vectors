@@ -28,7 +28,7 @@ class XVectorModel(pl.LightningModule):
         self.dataset = Dataset()
 
     # Satistic pooling layer
-    def stat_pool(self, x):
+    def stat_pool(self, x): #TODO replace with nn.averagepool2d
         mean = torch.mean(x, 1)
         stand_dev = torch.std(x, 1)
         out = torch.cat((mean, stand_dev), 1)
@@ -37,7 +37,7 @@ class XVectorModel(pl.LightningModule):
     def forward(self, x):
         out = self.time_context_layers(x)
 
-        out = self.stat_pool(out) #2d
+        out = self.stat_pool(out) #TODO replace with nn.averagepool2d
 
         out = F.relu(self.segment_layer6(out))
         out = F.relu(self.segment_layer7(out))
@@ -108,7 +108,7 @@ if __name__ == "__main__": #TODO figure out how to keep long process running in 
 
     # Extract the x-vectors
     x_vector = []
-    trainer.test(model)
+    trainer.test(model) #TODO train PLDA classifier in test and do actual testing in prediction loop
     x_vector = pd.DataFrame(x_vector)
     # x_vector.to_csv('x_vectors/x_vector.csv')
 
