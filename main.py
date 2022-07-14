@@ -25,7 +25,7 @@ class XVectorModel(pl.LightningModule):
         self.segment_layer7 = nn.Linear(hidden_size, hidden_size)
         self.output = nn.Linear(hidden_size, num_classes) #TODO use softmax? nn.CrossEntropyLoss() appearently already includes a softmax
 
-        self.dataset = Dataset()
+        self.dataset = Dataset(data_folder_path=config.data_folder_path)
 
     # Satistic pooling layer
     def stat_pool(self, x): #TODO replace with nn.averagepool2d
@@ -81,12 +81,12 @@ class XVectorModel(pl.LightningModule):
         return torch.optim.Adam(model.parameters(), lr=config.learning_rate)
 
     def train_dataloader(self):# TODO maybe visualize select data samples for images for the thesis
-        self.dataset.load_train_data(data_folder_path=config.data_folder_path)
+        self.dataset.load_train_data()
         train_data_loader = DataLoader(dataset=self.dataset, batch_size=config.batch_size, num_workers=4, shuffle=True)
         return train_data_loader
 
     def test_dataloader(self):
-        self.dataset.load_test_data(data_folder_path=config.data_folder_path)
+        self.dataset.load_test_data()
         test_data_loader = DataLoader(dataset=self.dataset, batch_size=config.batch_size, num_workers=4, shuffle=False)
         return test_data_loader
 

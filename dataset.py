@@ -14,7 +14,7 @@ from torch.utils.data import Dataset
 EPS = 1e-20
 
 class Dataset(Dataset): 
-    def __init__(self, sampling_rate=16000, mfcc_numcep=24, mfcc_nfilt=26, mfcc_nfft=512, data_folder_path='data', augmentations_per_sample=2):#TODO adjust where path is given
+    def __init__(self, sampling_rate=16000, mfcc_numcep=24, mfcc_nfilt=26, mfcc_nfft=512, data_folder_path='data', augmentations_per_sample=2):
         self.samples = []
         self.labels = []
 
@@ -32,7 +32,7 @@ class Dataset(Dataset):
     # Can be called as dataset[i] and works with dataloader
     def __getitem__(self, index):
         sample_path, augmentation = self.samples[index]
-        sample, rate = torchaudio.load(sample_path) #TODO test how this works
+        rate, sample = wavfile.read(sample_path, np.dtype)
         sample = resampy.resample(sample, rate, self.sampling_rate)
 
         # Augment the sample with noise and/or reverbaraition
@@ -88,18 +88,31 @@ class Dataset(Dataset):
 
     def cut_to_sec(self, sample, length):
         if(len(sample) < self.sampling_rate*length):
-            new_sample = F.pad(sample, self.sampling_rate*length)
+            new_sample = np.pad(sample, (0, self.sampling_rate*length-len(sample)), 'constant', constant_values=(0, 0))
         else:
             start_point = random.randint(0, len(sample) - self.sampling_rate*length)
             new_sample = sample[start_point:start_point + self.sampling_rate*length]
         return new_sample
+
+    def add_with_certain_snr(self, sample, noise, min_snr_db=5, max_snr_db=20):
+        sample = sample.astype('int64')
+        noise = noise.astype('int64')
+
+        sample_rms = np.sqrt(np.mean(sample**2))
+        noise_rms = np.sqrt(np.mean(noise**2))
+        wanted_snr = random.randint(min_snr_db, max_snr_db)
+        wanted_noise_rms = np.sqrt(sample_rms**2 / 10**(wanted_snr/10))
+
+        new_noise = noise * wanted_noise_rms/(noise_rms+EPS)
+        noisy_sample = sample + new_noise
+        return noisy_sample
 
     def augment_musan_music(self, sample): #TODO maybe offset slow starting music
         musan_music_path = self.data_folder_path + '/musan/music/*/*.wav'
         print('load sample: augmenting with musan music')
 
         song_path = random.choice(glob.glob(musan_music_path))
-        song, rate = torchaudio.load(song_path)
+        rate, song = wavfile.read(song_path, np.dtype)
         song = resampy.resample(song, rate, self.sampling_rate)
 
         song = self.cut_to_sec(song, 3)
@@ -111,18 +124,18 @@ class Dataset(Dataset):
         print('load sample: augmenting with musan speech')
 
         speaker_path = random.choice(glob.glob(musan_speech_path))
-        speakers, rate = torchaudio.load(speaker_path)
+        rate, speakers = wavfile.read(speaker_path, np.dtype)
         speakers = resampy.resample(speakers, rate, self.sampling_rate)
         speakers = self.cut_to_sec(speakers, 3)
 
         for i in range(random.randint(2, 6)):
             speaker_path = random.choice(glob.glob(musan_speech_path))
-            speaker, rate = torchaudio.load(speaker_path)
+            rate, speaker = wavfile.read(speaker_path, np.dtype)
             speaker = resampy.resample(speaker, rate, self.sampling_rate)
             speaker = self.cut_to_sec(speaker, 3)
             speakers = speakers + speaker
             
-        aug_sample = self.add_with_certain_snr(sample, speakers, min_snr_db=13, max_snr_db=20)
+        aug_sample = self.add_with_certain_snr(sample, speakers, min_snr_db=13, max_snr_db=20)#TODO check snr values
         return aug_sample
 
     def augment_musan_noise(self, sample): #TODO leave noise at 1 sec each or overlap?
@@ -131,36 +144,25 @@ class Dataset(Dataset):
         
         for i in range(3):
             noise_path = random.choice(glob.glob(musan_noise_path))
-            noise, rate = torchaudio.load(noise_path)
+            rate, noise = wavfile.read(noise_path, np.dtype)
             noise = resampy.resample(noise, rate, self.sampling_rate)
             noise = self.cut_to_sec(noise, 1)
             sample[i:i+self.sampling_rate] = self.add_with_certain_snr(sample[i:i+self.sampling_rate], noise, min_snr_db=0, max_snr_db=15)
 
         return sample
 
-    def add_with_certain_snr(self, sample, noise, min_snr_db=5, max_snr_db=20):
-        # sample = sample.astype('int64')
-        # noise = noise.astype('int64')
-
-        sample_rms = np.sqrt(np.mean(sample**2))
-        noise_rms = np.sqrt(np.mean(noise**2))
-        wanted_snr = random.randint(min_snr_db, max_snr_db)
-        wanted_noise_rms = np.sqrt(sample_rms**2 / 10**(wanted_snr/10))
-
-        new_noise = noise * wanted_noise_rms/(noise_rms+EPS)
-        noisy_sample = sample + new_noise
-        return noisy_sample
-
     def augment_rir(self, sample):
         rir_noise_path = self.data_folder_path + '/RIRS_NOISES/simulated_rirs/*/*/*.wav'
         print('load sample: augmenting with rir')
 
         rir_path = random.choice(glob.glob(rir_noise_path))
-        rir, _ = torchaudio.load(rir_path, np.dtype) #TODO neccessary to adjust the sampling rate for rir?
+        _, rir = wavfile.read(rir_path, np.dtype) #TODO neccessary to adjust the sampling rate for rir?
         aug_sample = fftconvolve(sample, rir)
         aug_sample = aug_sample / abs(aug_sample).max()
-        
-        sample = F.normalize(sample)
-        aug_sample = F.normalize(aug_sample)
+
+        sample_max = abs(sample).max()
+        aug_max = abs(aug_sample).max()
+        aug_sample = aug_sample * (sample_max/aug_max)
+    
         aug_sample = sample + aug_sample[:len(sample)]
         return aug_sample
