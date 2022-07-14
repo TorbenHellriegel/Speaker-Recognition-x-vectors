@@ -95,7 +95,7 @@ if __name__ == "__main__": #TODO figure out how to keep long process running in 
 
     # Define neural network
     model = XVectorModel(config.input_size, config.hidden_size, config.num_classes) #TODO num classes of the training set or also the test set
-    trainer = pl.Trainer(accelerator='ddp', devices=2, max_epochs=config.num_epochs, log_every_n_steps=10, fast_dev_run=False) #TODO adjust log_every_n_steps
+    trainer = pl.Trainer(accelerator='gpu', devices=1, max_epochs=config.num_epochs, log_every_n_steps=10, fast_dev_run=False) #TODO adjust devices and log_every_n_steps also add strategy='ddp'
     # Maybe load an existing pretrained model dictionary
     if(config.load_existing_model):
         model.load_state_dict(torch.load(config.model_path))

@@ -37,7 +37,7 @@ class Dataset(Dataset):
 
         # Augment the sample with noise and/or reverbaraition
         augmented_sample = self.augment_data(sample, augmentation)
-        augmented_sample = mfcc(augmented_sample, self.sampling_rate, numcep=self.mfcc_numcep, nfilt=self.mfcc_nfilt, nfft=self.mfcc_nfft)
+        augmented_sample = mfcc(augmented_sample, self.sampling_rate, numcep=self.mfcc_numcep, nfilt=self.mfcc_nfilt, nfft=self.mfcc_nfft)#TODO figure out how mfcc works
 
         return augmented_sample, self.unique_labels.index(self.labels[index])
 
@@ -45,7 +45,7 @@ class Dataset(Dataset):
         return self.n_samples
     
     # Load the training data and save all relevant info in arrays
-    def load_train_data(self): #TODO os.path!!!!!!
+    def load_train_data(self): #TODO os.path
         vox_train_path = self.data_folder_path + '/VoxCeleb/vox1_dev_wav/id1000*/*/00001.wav' #TODO replace id100* and 00001 with * to load all samples
         self.load_data(vox_train_path)
     
@@ -61,7 +61,7 @@ class Dataset(Dataset):
         # Gat the list of samples and labels
         self.samples = self.samples + [(sample, 'none') for sample in globs]
         self.labels = self.labels + [os.path.basename(os.path.dirname(os.path.dirname(f))) for f in globs]
-        for i in self.augmentations_per_sample:
+        for i in range(self.augmentations_per_sample):
             self.samples = self.samples + [(sample, random.choice(['music', 'speech', 'noise', 'rir'])) for sample in globs]
             self.labels = self.labels + [os.path.basename(os.path.dirname(os.path.dirname(f))) for f in globs]
 
@@ -83,7 +83,9 @@ class Dataset(Dataset):
         else:
             aug_sample = sample
 
-        aug_sample = F.normalize(aug_sample)
+        aug_sample = aug_sample.astype(np.float64)
+        aug_sample -= np.min(aug_sample)
+        aug_sample /= np.max(aug_sample)
         return aug_sample
 
     def cut_to_sec(self, sample, length):
@@ -107,9 +109,9 @@ class Dataset(Dataset):
         noisy_sample = sample + new_noise
         return noisy_sample
 
-    def augment_musan_music(self, sample): #TODO maybe offset slow starting music
+    def augment_musan_music(self, sample):
         musan_music_path = self.data_folder_path + '/musan/music/*/*.wav'
-        print('load sample: augmenting with musan music')
+        #print('load sample: augmenting with musan music')
 
         song_path = random.choice(glob.glob(musan_music_path))
         rate, song = wavfile.read(song_path, np.dtype)
@@ -121,7 +123,7 @@ class Dataset(Dataset):
 
     def augment_musan_speech(self, sample):
         musan_speech_path = self.data_folder_path + '/musan/speech/*/*.wav'
-        print('load sample: augmenting with musan speech')
+        #print('load sample: augmenting with musan speech')
 
         speaker_path = random.choice(glob.glob(musan_speech_path))
         rate, speakers = wavfile.read(speaker_path, np.dtype)
@@ -135,12 +137,12 @@ class Dataset(Dataset):
             speaker = self.cut_to_sec(speaker, 3)
             speakers = speakers + speaker
             
-        aug_sample = self.add_with_certain_snr(sample, speakers, min_snr_db=13, max_snr_db=20)#TODO check snr values
+        aug_sample = self.add_with_certain_snr(sample, speakers, min_snr_db=13, max_snr_db=20)
         return aug_sample
 
     def augment_musan_noise(self, sample): #TODO leave noise at 1 sec each or overlap?
         musan_noise_path = self.data_folder_path + '/musan/noise/*/*.wav'
-        print('load sample: augmenting with musan noise')
+        #print('load sample: augmenting with musan noise')
         
         for i in range(3):
             noise_path = random.choice(glob.glob(musan_noise_path))
@@ -153,10 +155,10 @@ class Dataset(Dataset):
 
     def augment_rir(self, sample):
         rir_noise_path = self.data_folder_path + '/RIRS_NOISES/simulated_rirs/*/*/*.wav'
-        print('load sample: augmenting with rir')
+        #print('load sample: augmenting with rir')
 
         rir_path = random.choice(glob.glob(rir_noise_path))
-        _, rir = wavfile.read(rir_path, np.dtype) #TODO neccessary to adjust the sampling rate for rir?
+        _, rir = wavfile.read(rir_path, np.dtype)
         aug_sample = fftconvolve(sample, rir)
         aug_sample = aug_sample / abs(aug_sample).max()
 
