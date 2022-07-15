@@ -1,7 +1,7 @@
 import glob
 import os
 import random
-
+import torch
 import numpy as np
 import resampy
 import torchaudio
@@ -38,8 +38,8 @@ class Dataset(Dataset):
         # Augment the sample with noise and/or reverbaraition
         augmented_sample = self.augment_data(sample, augmentation)
         augmented_sample = mfcc(augmented_sample, self.sampling_rate, numcep=self.mfcc_numcep, nfilt=self.mfcc_nfilt, nfft=self.mfcc_nfft)#TODO figure out how mfcc works
-
-        return augmented_sample, self.unique_labels.index(self.labels[index])
+        
+        return torch.from_numpy(augmented_sample), self.unique_labels.index(self.labels[index])
 
     def __len__(self):
         return self.n_samples
