@@ -5,10 +5,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
-
+import plda
 from config import Config
 from dataset import Dataset
 from tdnn import TdnnLayer
+import matplotlib.pyplot as plt
 
 class XVectorModel(pl.LightningModule):
     def __init__(self, input_size, hidden_size, num_classes):
@@ -74,7 +75,8 @@ class XVectorModel(pl.LightningModule):
         for batch_output in test_step_outputs:
             for x_vec, label in batch_output:
                 for x, l in zip(x_vec, label):
-                    x_vector.append((x.cpu().numpy(), l.cpu().numpy()))
+                    x_vector.append(x.cpu().numpy())
+                    x_label.append(l.cpu().numpy())
         return test_step_outputs
     
     def configure_optimizers(self):
@@ -91,7 +93,7 @@ class XVectorModel(pl.LightningModule):
         return test_data_loader
 
 if __name__ == "__main__": #TODO figure out how to keep long process running in background
-    config = Config(batch_size=10, load_existing_model=True, num_epochs=5) #TODO adjust batch (16, 32) epoch etc.
+    config = Config(batch_size=16, load_existing_model=False, num_epochs=1) #TODO adjust batch (16, 32) epoch etc.
 
     # Define neural network
     model = XVectorModel(config.input_size, config.hidden_size, config.num_classes) #TODO num classes of the training set or also the test set
@@ -108,9 +110,37 @@ if __name__ == "__main__": #TODO figure out how to keep long process running in 
 
     # Extract the x-vectors
     x_vector = []
+    x_label = []
     trainer.test(model) #TODO train PLDA classifier in test and do actual testing in prediction loop
-    x_vector = pd.DataFrame(x_vector)
+    # x_vector = pd.DataFrame(x_vector)
     # x_vector.to_csv('x_vectors/x_vector.csv')
+    x_vector_train = x_vector[:800]
+    x_vector_test = x_vector[801:]
+    x_label_train = x_vector[:800]
+    x_label_test = x_vector[801:]
+    x_vector_train = np.array(x_vector)
+    x_vector_test = np.array(x_vector)
+    x_label_train = np.array(x_label)
+    x_label_test = np.array(x_label)
+
+    plda_classifier = plda.Classifier()
+    plda_classifier.fit_model(x_vector_train, x_label_train)
+
+    predictions, log_p_predictions = plda_classifier.predict(x_vector_test)
+    print('Accuracy: {}'.format((x_label_test == predictions).mean()))
+
+    n_examples = 10
+    fig, ax_arr = plt.subplots(1, n_examples, figsize=(20, 2))
+
+    for x in range(n_examples):
+        ax_arr[x].imshow(x_vector_test[x].reshape(16, 32), cmap='gray')
+        ax_arr[x].set_xticks([])
+        ax_arr[x].set_yticks([])
+        title = 'Prediction: {}'
+        xlabel = 'Truth: {}'
+        ax_arr[x].set_title(title.format(predictions[x]))
+        ax_arr[x].set_xlabel(xlabel.format(x_label_test[x]))
+    plt.show()
 
 #153516 sample each 3 sec
 #460548 sec
