@@ -46,12 +46,12 @@ class Dataset(Dataset):
     
     # Load the training data and save all relevant info in arrays
     def load_train_data(self): #TODO os.path
-        vox_train_path = self.data_folder_path + '/VoxCeleb/vox1_dev_wav/id1000*/*/00001.wav' #TODO replace id100* and 00001 with * to load all samples
+        vox_train_path = self.data_folder_path + '/VoxCeleb/vox1_dev_wav/*/*/*.wav'
         self.load_data(vox_train_path)
     
     # Load the testing data and save all relevant info in arrays
     def load_test_data(self):
-        vox_test_path = self.data_folder_path + '/VoxCeleb/vox1_test_wav/id103*/*/00001.wav' #TODO replace id103* and 00001 with * to load all samples
+        vox_test_path = self.data_folder_path + '/VoxCeleb/vox1_test_wav//*/*.wav'
         self.load_data(vox_test_path)
 
     def load_data(self, voxceleb_folder_path):
