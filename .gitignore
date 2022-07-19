@@ -11,6 +11,8 @@ __pycache__/
 build/
 data/
 runs/
+logs/
+out/
 lightning_logs/
 x_vectors/
 develop-eggs/

@@ -103,15 +103,20 @@ class XVectorModel(pl.LightningModule):
         return test_data_loader
 
 if __name__ == "__main__": #TODO figure out how to keep long process running in background
-    config = Config(num_epochs=5) #TODO adjust batch (16, 32) epoch etc.
+    config = Config(num_epochs=5, batch_size=16) #TODO adjust batch (16, 32) epoch etc.
 
     tb_logger = pl_loggers.TensorBoardLogger(save_dir="logs/") #TODO logger accuracy cossentropyloss (plda)
 
     # Define neural network
     model = XVectorModel(config.input_size, config.hidden_size, config.num_classes, config.batch_size)
-    trainer = pl.Trainer(strategy='ddp', accelerator='gpu', devices=2, max_epochs=config.num_epochs, #TODO adjust devices and also add strategy='ddp'
+    # Long train mode
+    # trainer = pl.Trainer(strategy='ddp', accelerator='gpu', devices=2, max_epochs=config.num_epochs, #TODO adjust devices and also add strategy='ddp' and devices=2
+    #                     logger=tb_logger, log_every_n_steps=1, #TODO adjust log_every_n_steps
+    #                     fast_dev_run=False)#, limit_train_batches=0.001, limit_test_batches=0.001) #TODO set limit_batches to 1 or 0.01
+    # Short test mode
+    trainer = pl.Trainer(accelerator='cpu', max_epochs=1, #TODO adjust devices and also add strategy='ddp' and devices=2
                         logger=tb_logger, log_every_n_steps=1, #TODO adjust log_every_n_steps
-                        fast_dev_run=False)#, limit_train_batches=0.01, limit_test_batches=0.01) #TODO set limit_batches to 1 or 0.01
+                        fast_dev_run=False, limit_train_batches=0.001, limit_test_batches=0.001) #TODO set limit_batches to 1 or 0.01
 
     # Train the x-vector model
     trainer.fit(model) #TODO ckpt_path="logs/lightning_logs/version_XX/checkpoints/epoch=YY-step=ZZ.ckpt"
@@ -122,14 +127,15 @@ if __name__ == "__main__": #TODO figure out how to keep long process running in 
     trainer.test(model) #TODO train PLDA classifier in test and do actual testing in prediction loop (DOESNT WORK)
     # x_vector = pd.DataFrame(x_vector)
     # x_vector.to_csv('x_vectors/x_vector.csv')
-    x_vector_train = x_vector[:800]
-    x_vector_test = x_vector[801:]
-    x_label_train = x_vector[:800]
-    x_label_test = x_vector[801:]
-    x_vector_train = np.array(x_vector)
-    x_vector_test = np.array(x_vector)
-    x_label_train = np.array(x_label)
-    x_label_test = np.array(x_label)
+    divider = int(len(x_vector)*0.95)
+    x_vector_train = np.array(x_vector[:divider])
+    x_label_train = np.array(x_label[:divider])
+    x_vector_test = np.array(x_vector[divider:])
+    x_label_test = np.array(x_label[divider:])
+    print('shape: ', x_vector_train.shape, ' dtype: ', x_vector_train.dtype)
+    print('shape: ', x_label_train.shape, ' dtype: ', x_label_train.dtype)
+    print('shape: ', x_vector_test.shape, ' dtype: ', x_vector_test.dtype)
+    print('shape: ', x_label_test.shape, ' dtype: ', x_label_test.dtype)
 
     plda_classifier = plda.Classifier()
     plda_classifier.fit_model(x_vector_train, x_label_train)
@@ -155,3 +161,5 @@ if __name__ == "__main__": #TODO figure out how to keep long process running in 
 # etwa 13-17 sec pro iteration
 # etwa 871 iterationen
 # insgesamt etwa 3-4 stunden
+
+# nohup python main.py &> out/NAME.out &
