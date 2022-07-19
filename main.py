@@ -103,7 +103,7 @@ class XVectorModel(pl.LightningModule):
         return test_data_loader
 
 if __name__ == "__main__": #TODO figure out how to keep long process running in background
-    config = Config(num_epochs=1) #TODO adjust batch (16, 32) epoch etc.
+    config = Config(num_epochs=5) #TODO adjust batch (16, 32) epoch etc.
 
     tb_logger = pl_loggers.TensorBoardLogger(save_dir="logs/") #TODO logger accuracy cossentropyloss (plda)
 
@@ -111,7 +111,7 @@ if __name__ == "__main__": #TODO figure out how to keep long process running in 
     model = XVectorModel(config.input_size, config.hidden_size, config.num_classes, config.batch_size)
     trainer = pl.Trainer(strategy='ddp', accelerator='gpu', devices=2, max_epochs=config.num_epochs, #TODO adjust devices and also add strategy='ddp'
                         logger=tb_logger, log_every_n_steps=1, #TODO adjust log_every_n_steps
-                        fast_dev_run=False, limit_train_batches=0.01, limit_test_batches=0.01) #TODO set limit_batches to 1
+                        fast_dev_run=False)#, limit_train_batches=0.01, limit_test_batches=0.01) #TODO set limit_batches to 1 or 0.01
 
     # Train the x-vector model
     trainer.fit(model) #TODO ckpt_path="logs/lightning_logs/version_XX/checkpoints/epoch=YY-step=ZZ.ckpt"
