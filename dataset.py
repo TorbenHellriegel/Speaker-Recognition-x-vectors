@@ -1,14 +1,13 @@
 import glob
 import os
 import random
-import torch
+
 import numpy as np
 import resampy
-import torchaudio
-import torch.nn.functional as F
+import torch
 from python_speech_features import mfcc
 from scipy.io import wavfile
-from scipy.signal import convolve, fftconvolve
+from scipy.signal import fftconvolve
 from torch.utils.data import Dataset
 
 EPS = 1e-20
