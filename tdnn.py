@@ -1,7 +1,6 @@
-import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+
 
 class TdnnLayer(nn.Module):
     def __init__(self, input_size=24, output_size=512, context=[0]):
@@ -13,8 +12,7 @@ class TdnnLayer(nn.Module):
 
         self.linear = nn.Linear(input_size*len(context), output_size)
         self.relu = nn.ReLU()
-        self.norm = nn.BatchNorm1d(output_size) #TODO use batchnorm? it seems to be getting better results (at least on small data set)
-        #TODO also use droput? the original paper doesnt mention it and I dont know if im overfitting until I do bigger tests
+        self.norm = nn.BatchNorm1d(output_size)
 
     def forward(self, x):
 

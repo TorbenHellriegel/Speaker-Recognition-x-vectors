@@ -1,14 +1,13 @@
 import glob
 import os
 import random
-import torch
+
 import numpy as np
 import resampy
-import torchaudio
-import torch.nn.functional as F
+import torch
 from python_speech_features import mfcc
 from scipy.io import wavfile
-from scipy.signal import convolve, fftconvolve
+from scipy.signal import fftconvolve
 from torch.utils.data import Dataset
 
 EPS = 1e-20
@@ -46,12 +45,12 @@ class Dataset(Dataset):
     
     # Load the training data and save all relevant info in arrays
     def load_train_data(self): #TODO os.path
-        vox_train_path = self.data_folder_path + '/VoxCeleb/vox1_dev_wav/id1000*/*/00001.wav' #TODO replace id100* and 00001 with * to load all samples
+        vox_train_path = self.data_folder_path + '/VoxCeleb/vox1_dev_wav/*/*/*.wav'
         self.load_data(vox_train_path)
     
     # Load the testing data and save all relevant info in arrays
     def load_test_data(self):
-        vox_test_path = self.data_folder_path + '/VoxCeleb/vox1_test_wav/id103*/*/00001.wav' #TODO replace id103* and 00001 with * to load all samples
+        vox_test_path = self.data_folder_path + '/VoxCeleb/vox1_test_wav//*/*.wav'
         self.load_data(vox_test_path)
 
     def load_data(self, voxceleb_folder_path):

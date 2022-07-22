@@ -1,12 +1,11 @@
 class Config:
     def __init__(self,
-                batch_size=100,
+                batch_size=512,
                 input_size=24,
                 hidden_size=512,
-                num_classes=1211, #TODO num classes of the training set or also the test set? 1211 or 1251
+                num_classes=1211, #TODO num classes of the training set or also the test set? 1211 or 1251 find out after full test run
                 learning_rate=0.001,
                 num_epochs=5,
-                load_existing_model=True,
                 model_path='./trained_models/x_vector_model.pth',
                 data_folder_path='../../../../../../../../../data/7hellrie'):
                 
@@ -17,5 +16,4 @@ class Config:
         self.num_classes = num_classes
         self.learning_rate = learning_rate
         self.num_epochs = num_epochs
-        self.load_existing_model = load_existing_model
         self.model_path = model_path
