@@ -7,6 +7,7 @@ import torch.nn.functional as F
 import torch.utils.tensorboard
 import torchmetrics
 from pytorch_lightning import loggers as pl_loggers
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from torch.utils.data import DataLoader
 
@@ -125,9 +126,10 @@ if __name__ == "__main__":
     # Define parameters, model, logger and trainer
     config = Config() #adjust batch size, epoch, etc. here
     tb_logger = pl_loggers.TensorBoardLogger(save_dir="logs/")
+    checkpoint_callback = ModelCheckpoint(dirpath='checkpoints/', monitor='val_loss', save_last=True, save_top_k=10, verbose=True) #TODO implement model checkpoint
     model = XVectorModel(config.input_size, config.hidden_size, config.num_classes,
                         config.batch_size, config.learning_rate, config.data_folder_path) #TODO mer checkpints
-    trainer = pl.Trainer(callbacks=[EarlyStopping(monitor="val_loss", mode="min")],
+    trainer = pl.Trainer(callbacks=[EarlyStopping(monitor="val_loss", mode="min")], callbacks=[checkpoint_callback],
                         strategy='ddp', accelerator='gpu', devices=2, max_epochs=config.num_epochs,
                         logger=tb_logger, log_every_n_steps=1) #small test adjust options: fast_dev_run=True, limit_train_batches=0.001, limit_test_batches=0.001
 
@@ -174,12 +176,14 @@ if __name__ == "__main__":
 # Can run in background with this command. Also saves output in .out file
 # nohup python main.py &> out/NAME.out &
 
+#my data used
 #153516 sample each 3 sec
 #460548 sec
 #7676 min
-#127 stunden
+#127 h
 
+#total data available
 #153516 sample average 8.4 sec
 #1265760 sec
 #21096 min
-#350 stunden
+#350 h
