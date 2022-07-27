@@ -50,7 +50,7 @@ class Dataset(Dataset):
     
     # Load the testing data and save all relevant info in arrays
     def load_test_data(self):
-        vox_test_path = self.data_folder_path + '/VoxCeleb/vox1_test_wav//*/*.wav'
+        vox_test_path = self.data_folder_path + '/VoxCeleb/vox1_test_wav/*/*/*.wav'
         self.load_data(vox_test_path)
 
     def load_data(self, voxceleb_folder_path):

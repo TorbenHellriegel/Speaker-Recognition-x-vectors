@@ -115,9 +115,11 @@ if __name__ == "__main__":
     x_vectors_train = []
     x_vectors_test = []
     for label in unique_labels:
-        samples = [[x, l] for i, x, l in enumerate(x_vectors) if x_vectors[i, 1] == label]
+        samples = [[x, l] for i, (x, l) in enumerate(x_vectors) if x_vectors[i, 1] == label]
         x_vectors_train = x_vectors_train + samples[1:]
         x_vectors_test = x_vectors_test + samples[:1]
+    x_vectors_train = np.array(x_vectors_train)
+    x_vectors_test = np.array(x_vectors_test)
     x_vec_train = np.array(x_vectors_train[:, 0])
     x_label_train = np.array(x_vectors_train[:, 1])
     x_vec_test = np.array(x_vectors_test[:, 0])
