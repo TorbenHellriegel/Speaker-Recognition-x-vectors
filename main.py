@@ -96,8 +96,6 @@ class XVectorModel(pl.LightningModule):
         for batch_output in test_step_outputs:
             for x_vec, label in batch_output:
                 for x, l in zip(x_vec, label):
-                    # x_vector.append(x.cpu().numpy())
-                    # x_label.append(l.cpu().numpy())
                     x_vectors.append((x.cpu().numpy(), l.cpu().numpy()))
         return test_step_outputs
     
@@ -114,9 +112,13 @@ class XVectorModel(pl.LightningModule):
         train_data_loader = DataLoader(dataset=self.dataset, batch_size=self.batch_size, num_workers=4, shuffle=True)
         return train_data_loader
 
-    def test_dataloader(self): #TODO call twice with different param to load plda train and test data seperately
-        self.dataset.load_data(train=True, val=True, test=True)
-        test_data_loader = DataLoader(dataset=self.dataset, batch_size=self.batch_size, num_workers=4, shuffle=False)
+    def test_dataloader(self):
+        if(extract_mode == 'train'):
+            self.dataset.load_data(train=True, val=True)
+            test_data_loader = DataLoader(dataset=self.dataset, batch_size=self.batch_size, num_workers=4, shuffle=False)
+        if(extract_mode == 'test'):
+            self.dataset.load_data(test=True)
+            test_data_loader = DataLoader(dataset=self.dataset, batch_size=self.batch_size, num_workers=4, shuffle=False)
         return test_data_loader
 
 if __name__ == "__main__":
@@ -134,24 +136,35 @@ if __name__ == "__main__":
 
     # Extract the x-vectors
     x_vectors = []
+    extract_mode = 'train'
     trainer.test(model)
-    x_vectors = np.array(x_vectors)
-    unique_labels = np.unique(x_vectors[:, 1])
-    x_vectors_train = []
-    x_vectors_test = []
-    for label in unique_labels:
-        samples = [[x, l] for i, (x, l) in enumerate(x_vectors) if x_vectors[i, 1] == label]
-        x_vectors_train = x_vectors_train + samples[1:]
-        x_vectors_test = x_vectors_test + samples[:1]
-    x_vectors_train = np.array(x_vectors_train)
-    x_vectors_test = np.array(x_vectors_test)
+    x_vectors_train = np.array(x_vectors)
+    
+    x_vectors = []
+    extract_mode = 'test'
+    trainer.test(model)
+    x_vectors_test = np.array(x_vectors)
+    
     x_vec_train = np.array(x_vectors_train[:, 0])
     x_label_train = np.array(x_vectors_train[:, 1])
     x_vec_test = np.array(x_vectors_test[:, 0])
     x_label_test = np.array(x_vectors_test[:, 1])
 
+    print('x_vec_train', x_vec_train)
+    print('x_vec_train', x_vec_train.shape)
+    print('x_vec_train', x_vec_train.dtype)
+    print('x_label_train', x_label_train)
+    print('x_label_train', x_label_train.shape)
+    print('x_label_train', x_label_train.dtype)
+    print('x_vec_test', x_vec_test)
+    print('x_vec_test', x_vec_test.shape)
+    print('x_vec_test', x_vec_test.dtype)
+    print('x_label_test', x_label_test)
+    print('x_label_test', x_label_test.shape)
+    print('x_label_test', x_label_test.dtype)
+
     # Train PLDA classifier
-    plda_classifier = plda.Classifier()
+    plda_classifier = plda.Classifier() #TODO change to better plda classifyer
     plda_classifier.fit_model(x_vec_train, x_label_train)
 
     # Test PLDA classifier
