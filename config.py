@@ -3,9 +3,9 @@ class Config:
                 batch_size=512,
                 input_size=24,
                 hidden_size=512,
-                num_classes=1211, #TODO num classes of the training set or also the test set? 1211 or 1251 find out after full test run
+                num_classes=1211,
                 learning_rate=0.001,
-                num_epochs=5,
+                num_epochs=7,
                 model_path='./trained_models/x_vector_model.pth',
                 data_folder_path='../../../../../../../../../data/7hellrie'):
                 

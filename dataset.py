@@ -20,12 +20,60 @@ class Dataset(Dataset):
         self.n_samples = 0
         self.unique_labels = []
 
+        self.train_samples = []
+        self.train_labels = []
+        self.val_samples = []
+        self.val_labels = []
+        self.test_samples = []
+        self.test_labels = []
+
+        self.init_samples_and_labels()
+
         self.data_folder_path = data_folder_path
         self.sampling_rate = sampling_rate
         self.augmentations_per_sample = augmentations_per_sample
         self.mfcc_numcep = mfcc_numcep
         self.mfcc_nfilt = mfcc_nfilt
         self.mfcc_nfft = mfcc_nfft
+
+    def init_samples_and_labels(self):
+        vox_train_path = self.data_folder_path + '/VoxCeleb/vox1_dev_wav/*/*/*.wav'
+        vox_test_path = self.data_folder_path + '/VoxCeleb/vox1_test_wav/*/*/*.wav'
+
+        # Get the paths to all the data samples
+        globs = glob.glob(vox_train_path)
+        
+        # Gat the list of samples and labels
+        samples = [(sample, 'none') for sample in globs]
+        labels = [os.path.basename(os.path.dirname(os.path.dirname(f))) for f in globs]
+        for i in range(self.augmentations_per_sample):
+            samples = samples + [(sample, random.choice(['music', 'speech', 'noise', 'rir'])) for sample in globs]
+            labels = labels + [os.path.basename(os.path.dirname(os.path.dirname(f))) for f in globs]
+
+        unique_labels = np.unique(labels)
+
+        for label in unique_labels:
+            s = [samples[i] for i in range(labels) if labels[i] == label]
+            l = [labels[i] for i in range(labels) if labels[i] == label]
+            val_split = int(len(s)*0.1)
+            self.train_samples = self.train_samples + s[val_split:]
+            self.train_labels = self.train_labels + s[val_split:]
+            self.val_samples = self.val_samples + l[:val_split]
+            self.val_labels = self.val_labels + l[:val_split]
+            
+
+        # Get the paths to all the data samples
+        globs = glob.glob(vox_test_path)
+        
+        # Gat the list of samples and labels
+        samples = [(sample, 'none') for sample in globs]
+        labels = [os.path.basename(os.path.dirname(os.path.dirname(f))) for f in globs]
+        for i in range(self.augmentations_per_sample):
+            samples = samples + [(sample, random.choice(['music', 'speech', 'noise', 'rir'])) for sample in globs]
+            labels = labels + [os.path.basename(os.path.dirname(os.path.dirname(f))) for f in globs]
+
+        self.test_samples = samples
+        self.test_labels = labels
 
     # Returns the sample and class at the given index
     # Can be called as dataset[i] and works with dataloader
@@ -42,27 +90,22 @@ class Dataset(Dataset):
 
     def __len__(self):
         return self.n_samples
-    
-    # Load the training data and save all relevant info in arrays
-    def load_train_data(self): #TODO os.path
-        vox_train_path = self.data_folder_path + '/VoxCeleb/vox1_dev_wav/*/*/*.wav'
-        self.load_data(vox_train_path)
-    
-    # Load the testing data and save all relevant info in arrays
-    def load_test_data(self):
-        vox_test_path = self.data_folder_path + '/VoxCeleb/vox1_test_wav/*/*/*.wav'
-        self.load_data(vox_test_path)
 
-    def load_data(self, voxceleb_folder_path):
-        # Get the paths to all the data samples
-        globs = glob.glob(voxceleb_folder_path)
+    def load_data(self, train=False, val=False, test=False):
+        self.samples = []
+        self.labels = []
+        self.n_samples = 0
+        self.unique_labels = []
 
-        # Gat the list of samples and labels
-        self.samples = self.samples + [(sample, 'none') for sample in globs]
-        self.labels = self.labels + [os.path.basename(os.path.dirname(os.path.dirname(f))) for f in globs]
-        for i in range(self.augmentations_per_sample):
-            self.samples = self.samples + [(sample, random.choice(['music', 'speech', 'noise', 'rir'])) for sample in globs]
-            self.labels = self.labels + [os.path.basename(os.path.dirname(os.path.dirname(f))) for f in globs]
+        if(train):
+            self.samples = self.samples + self.train_samples
+            self.labels = self.labels + self.train_labels
+        if(val):
+            self.samples = self.samples + self.val_samples
+            self.labels = self.labels + self.val_labels
+        if(test):
+            self.samples = self.samples + self.test_samples
+            self.labels = self.labels + self.test_labels
 
         # Get the num of samples and the unique class names
         self.n_samples = len(self.samples)
