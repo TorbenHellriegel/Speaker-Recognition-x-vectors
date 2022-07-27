@@ -7,6 +7,7 @@ import torch.nn.functional as F
 import torch.utils.tensorboard
 import torchmetrics
 from pytorch_lightning import loggers as pl_loggers
+from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from torch.utils.data import DataLoader
 
 from config import Config
@@ -124,7 +125,8 @@ if __name__ == "__main__":
     tb_logger = pl_loggers.TensorBoardLogger(save_dir="logs/")
     model = XVectorModel(config.input_size, config.hidden_size, config.num_classes,
                         config.batch_size, config.learning_rate, config.data_folder_path) #TODO mer checkpints
-    trainer = pl.Trainer(strategy='ddp', accelerator='gpu', devices=2, max_epochs=config.num_epochs,
+    trainer = pl.Trainer(callbacks=[EarlyStopping(monitor="val_loss", mode="min")],
+                        strategy='ddp', accelerator='gpu', devices=2, max_epochs=config.num_epochs,
                         logger=tb_logger, log_every_n_steps=1) #small test adjust options: fast_dev_run=True, limit_train_batches=0.001, limit_test_batches=0.001
 
     # Train the x-vector model
