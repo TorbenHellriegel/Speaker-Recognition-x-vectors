@@ -142,7 +142,7 @@ if __name__ == "__main__":
     config = Config() #adjust batch size, epoch, etc. here
 
     tb_logger = pl_loggers.TensorBoardLogger(save_dir="./")
-    checkpoint_callback = ModelCheckpoint(monitor='val_step_loss', save_last=True, verbose=True)
+    checkpoint_callback = ModelCheckpoint(monitor='val_step_loss', save_top_k=10, save_last=True, verbose=True)
 
     model = XVectorModel(input_size=config.input_size, hidden_size=config.hidden_size, num_classes=config.num_classes,
                         batch_size=config.batch_size, learning_rate=config.learning_rate, batch_norm=config.batch_norm, dropout_p=config.dropout_p,
