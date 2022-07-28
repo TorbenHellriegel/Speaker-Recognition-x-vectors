@@ -5,7 +5,7 @@ class Config:
                 hidden_size=512,
                 num_classes=1211,
                 learning_rate=0.001,
-                num_epochs=7,
+                num_epochs=6,
                 batch_norm=True,
                 dropout_p=0.0,
                 augmentations_per_sample=2,
