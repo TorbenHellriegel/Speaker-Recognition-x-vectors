@@ -1,5 +1,4 @@
 import numpy as np
-import plda
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
@@ -22,34 +21,24 @@ class XVectorModel(pl.LightningModule):
                 augmentations_per_sample=2, data_folder_path='data'):
         super().__init__()
 
-        self.input_size = input_size
-        self.hidden_size = hidden_size
-        self.num_classes = num_classes
-        self.batch_size = batch_size
-        self.learning_rate = learning_rate
-        self.batch_norm = batch_norm
-        self.dropout_p = dropout_p
-        self.augmentations_per_sample = augmentations_per_sample
-        self.data_folder_path = data_folder_path
-
         self.time_context_layers = nn.Sequential(
-            TdnnLayer(input_size=self.input_size, output_size=self.hidden_size, context=[-2, -1, 0, 1, 2], batch_norm=self.batch_norm, dropout_p=self.dropout_p),
-            TdnnLayer(input_size=self.hidden_size, output_size=self.hidden_size, context=[-2, 0, 2], batch_norm=self.batch_norm, dropout_p=self.dropout_p),
-            TdnnLayer(input_size=self.hidden_size, output_size=self.hidden_size, context=[-3, 0, 3], batch_norm=self.batch_norm, dropout_p=self.dropout_p),
-            TdnnLayer(input_size=self.hidden_size, output_size=self.hidden_size, batch_norm=self.batch_norm, dropout_p=self.dropout_p),
-            TdnnLayer(input_size=self.hidden_size, output_size=1500, batch_norm=self.batch_norm, dropout_p=self.dropout_p)
+            TdnnLayer(input_size=input_size, output_size=hidden_size, context=[-2, -1, 0, 1, 2], batch_norm=batch_norm, dropout_p=dropout_p),
+            TdnnLayer(input_size=hidden_size, output_size=hidden_size, context=[-2, 0, 2], batch_norm=batch_norm, dropout_p=dropout_p),
+            TdnnLayer(input_size=hidden_size, output_size=hidden_size, context=[-3, 0, 3], batch_norm=batch_norm, dropout_p=dropout_p),
+            TdnnLayer(input_size=hidden_size, output_size=hidden_size, batch_norm=batch_norm, dropout_p=dropout_p),
+            TdnnLayer(input_size=hidden_size, output_size=1500, batch_norm=batch_norm, dropout_p=dropout_p)
         )
         self.segment_layer6 = nn.Linear(3000, hidden_size)
         self.segment_layer7 = nn.Linear(hidden_size, hidden_size)
         self.output = nn.Linear(hidden_size, num_classes)
 
-        self.dataset = Dataset(data_folder_path=data_folder_path, augmentations_per_sample=self.augmentations_per_sample)
+        self.batch_size = batch_size
+        self.learning_rate = learning_rate
+
+        self.dataset = Dataset(data_folder_path=data_folder_path, augmentations_per_sample=augmentations_per_sample)
         self.accuracy = torchmetrics.Accuracy()
 
-        self.save_hyperparameters(self.input_size, self.hidden_size, self.num_classes,
-                                    self.batch_size, self.learning_rate,
-                                    self.batch_norm, self.dropout_p,
-                                    self.augmentations_per_sample)
+        self.save_hyperparameters()
 
     # Satistic pooling layer
     def stat_pool(self, x): #TODO replace with nn.averagepool2d
@@ -81,10 +70,10 @@ class XVectorModel(pl.LightningModule):
         samples, labels = batch
         outputs = self(samples.float())
         loss = F.cross_entropy(outputs, labels)
-        return {'train_loss': loss, 'train_preds': outputs, 'train_labels': labels}
+        return {'loss': loss, 'train_preds': outputs, 'train_labels': labels}
 
     def training_step_end(self, outputs):
-        self.log('train_step_loss', outputs['train_loss'])
+        self.log('train_step_loss', outputs['loss'])
         self.accuracy(outputs['train_preds'], outputs['train_labels'])
         self.log('train_step_acc', self.accuracy)
 
@@ -92,10 +81,10 @@ class XVectorModel(pl.LightningModule):
         samples, labels = batch
         outputs = self(samples.float())
         loss = F.cross_entropy(outputs, labels)
-        return {'val_loss': loss, 'val_preds': outputs, 'val_labels': labels}
+        return {'loss': loss, 'val_preds': outputs, 'val_labels': labels}
 
     def validation_step_end(self, outputs):
-        self.log('val_step_loss', outputs['val_loss'])
+        self.log('val_step_loss', outputs['loss'])
         self.accuracy(outputs['val_preds'], outputs['val_labels'])
         self.log('val_step_acc', self.accuracy)
     
@@ -121,7 +110,7 @@ class XVectorModel(pl.LightningModule):
 
     def val_dataloader(self):
         self.dataset.load_data(val=True)
-        train_data_loader = DataLoader(dataset=self.dataset, batch_size=self.batch_size, num_workers=4, shuffle=True)
+        train_data_loader = DataLoader(dataset=self.dataset, batch_size=self.batch_size, num_workers=4, shuffle=False)
         return train_data_loader
 
     def test_dataloader(self):
@@ -134,73 +123,62 @@ class XVectorModel(pl.LightningModule):
         return test_data_loader
 
 if __name__ == "__main__":
-    # Define parameters, model, logger and trainer
+    # Define model and trainer
+    print('setting up model and trainer parameters')
     config = Config() #adjust batch size, epoch, etc. here
 
-    tb_logger = pl_loggers.TensorBoardLogger(save_dir="logs/")
-    checkpoint_callback = ModelCheckpoint(dirpath='checkpoints/', monitor='val_loss', save_last=True, save_top_k=10, verbose=True)
+    tb_logger = pl_loggers.TensorBoardLogger(save_dir="./")
+    checkpoint_callback = ModelCheckpoint(monitor='val_step_loss', save_last=True, verbose=True)
 
     model = XVectorModel(input_size=config.input_size, hidden_size=config.hidden_size, num_classes=config.num_classes,
                         batch_size=config.batch_size, learning_rate=config.learning_rate, batch_norm=config.batch_norm, dropout_p=config.dropout_p,
                         augmentations_per_sample=config.augmentations_per_sample, data_folder_path=config.data_folder_path)
 
-    trainer = pl.Trainer(callbacks=[EarlyStopping(monitor="val_loss", mode="min"), checkpoint_callback],
+    trainer = pl.Trainer(callbacks=[EarlyStopping(monitor="val_step_loss", mode="min"), checkpoint_callback],
                         logger=tb_logger, log_every_n_steps=1,
                         strategy='ddp', accelerator='gpu', devices=2,
                         max_epochs=config.num_epochs)
-                        #small test adjust options: fast_dev_run=True, limit_train_batches=0.001, limit_test_batches=0.001, limit_val_batches=0.001
+                        #small test adjust options: fast_dev_run=True, limit_train_batches=0.001, limit_val_batches=0.01, limit_test_batches=0.01
 
     # Train the x-vector model
     trainer.fit(model)#, ckpt_path="logs/lightning_logs/version_0/checkpoints/epoch=0-step=436.ckpt")
-
+    
     # Extract the x-vectors
     x_vectors = []
     extract_mode = 'train'
     trainer.test(model)
-    x_vectors_train = np.array(x_vectors)
+    x_vectors_train = np.array(x_vectors, dtype=np.ndarray)
     
     x_vectors = []
     extract_mode = 'test'
     trainer.test(model)
-    x_vectors_test = np.array(x_vectors)
+    x_vectors_test = np.array(x_vectors, dtype=np.ndarray)
     
     x_vec_train = np.array(x_vectors_train[:, 0])
     x_label_train = np.array(x_vectors_train[:, 1])
     x_vec_test = np.array(x_vectors_test[:, 0])
     x_label_test = np.array(x_vectors_test[:, 1])
 
-    print('x_vec_train', x_vec_train)
-    print('x_vec_train', x_vec_train.shape)
-    print('x_vec_train', x_vec_train.dtype)
-    print('x_label_train', x_label_train)
-    print('x_label_train', x_label_train.shape)
-    print('x_label_train', x_label_train.dtype)
-    print('x_vec_test', x_vec_test)
-    print('x_vec_test', x_vec_test.shape)
-    print('x_vec_test', x_vec_test.dtype)
-    print('x_label_test', x_label_test)
-    print('x_label_test', x_label_test.shape)
-    print('x_label_test', x_label_test.dtype)
+    # Train PLDA classifier #TODO
 
-    # Train PLDA classifier
-    plda_classifier = plda.Classifier() #TODO change to better plda classifyer
-    plda_classifier.fit_model(x_vec_train, x_label_train)
+    # Test PLDA classifier #TODO
 
-    # Test PLDA classifier
-    predictions, log_p_predictions = plda_classifier.predict(x_vec_test)
-    print('Accuracy: {}'.format((x_label_test == predictions).mean()))
+    print('done')
+'''
+Notes:
 
-# Can run in background with this command. Also saves output in .out file
-# nohup python main.py &> out/NAME.out &
+Can run in background with this command. Also saves output in .out file:
+nohup python main.py &> out/NAME.out &
 
-#my data used
-#153516 sample each 3 sec
-#460548 sec
-#7676 min
-#127 h
+my data used
+153516 sample each 3 sec
+460548 sec
+7676 min
+127 h
 
-#total data available
-#153516 sample average 8.4 sec
-#1265760 sec
-#21096 min
-#350 h
+total data available
+153516 sample average 8.4 sec
+1265760 sec
+21096 min
+350 h
+'''

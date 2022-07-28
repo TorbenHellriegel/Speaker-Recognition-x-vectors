@@ -8,6 +8,7 @@ import torch
 from python_speech_features import mfcc
 from scipy.io import wavfile
 from scipy.signal import fftconvolve
+from sklearn.model_selection import StratifiedKFold
 from torch.utils.data import Dataset
 
 EPS = 1e-20
@@ -27,8 +28,6 @@ class Dataset(Dataset):
         self.test_samples = []
         self.test_labels = []
 
-        self.init_samples_and_labels()
-
         self.data_folder_path = data_folder_path
         self.sampling_rate = sampling_rate
         self.augmentations_per_sample = augmentations_per_sample
@@ -36,12 +35,15 @@ class Dataset(Dataset):
         self.mfcc_nfilt = mfcc_nfilt
         self.mfcc_nfft = mfcc_nfft
 
+        self.init_samples_and_labels()
+
     def init_samples_and_labels(self):
         vox_train_path = self.data_folder_path + '/VoxCeleb/vox1_dev_wav/*/*/*.wav'
         vox_test_path = self.data_folder_path + '/VoxCeleb/vox1_test_wav/*/*/*.wav'
 
         # Get the paths to all train and val data samples
         globs = glob.glob(vox_train_path)
+        print('collectiong training and validation samples')
         
         # Gat the list of samples and labels
         samples = [(sample, 'none') for sample in globs]
@@ -51,28 +53,44 @@ class Dataset(Dataset):
             labels = labels + [os.path.basename(os.path.dirname(os.path.dirname(f))) for f in globs]
 
         unique_labels = np.unique(labels)
+        print('found:')
+        print(len(unique_labels), ' unique speakers')
+        print(int(len(samples)/(self.augmentations_per_sample+1)), ' voice samples')
+        print(len(samples), ' total voice samples including augmentations')
+        print('splitting into 90% training and 10% validation')
 
-        for label in unique_labels:
-            s = [samples[i] for i in range(labels) if labels[i] == label]
-            l = [labels[i] for i in range(labels) if labels[i] == label]
-            val_split = int(len(s)*0.1)
-            self.train_samples = self.train_samples + s[val_split:]
-            self.train_labels = self.train_labels + s[val_split:]
-            self.val_samples = self.val_samples + l[:val_split]
-            self.val_labels = self.val_labels + l[:val_split]
+        skf = StratifiedKFold(n_splits=10)
+        train_index, val_index = [], []
+        for traini, vali in skf.split(samples, labels):
+            train_index = traini
+            val_index = vali
+        
+        self.train_samples = list(np.array(samples)[train_index])
+        self.train_labels = list(np.array(labels)[train_index])
+        self.val_samples = list(np.array(samples)[val_index])
+        self.val_labels = list(np.array(labels)[val_index])
             
         # Get the paths to all test data samples
         globs = glob.glob(vox_test_path)
+        print('done')
+        print('collectiong training and validation samples')
         
         # Gat the list of samples and labels
-        samples = [(sample, 'none') for sample in globs]
-        labels = [os.path.basename(os.path.dirname(os.path.dirname(f))) for f in globs]
+        test_samples = [(sample, 'none') for sample in globs]
+        test_labels = [os.path.basename(os.path.dirname(os.path.dirname(f))) for f in globs]
         for i in range(self.augmentations_per_sample):
-            samples = samples + [(sample, random.choice(['music', 'speech', 'noise', 'rir'])) for sample in globs]
-            labels = labels + [os.path.basename(os.path.dirname(os.path.dirname(f))) for f in globs]
+            test_samples = test_samples + [(sample, random.choice(['music', 'speech', 'noise', 'rir'])) for sample in globs]
+            test_labels = test_labels + [os.path.basename(os.path.dirname(os.path.dirname(f))) for f in globs]
+            
+        unique_labels = np.unique(test_labels)
+        print('found:')
+        print(len(unique_labels), ' unique speakers')
+        print(int(len(test_samples)/(self.augmentations_per_sample+1)), ' voice samples')
+        print(len(test_samples), ' total voice samples including augmentations')
+        print('done')
 
-        self.test_samples = samples
-        self.test_labels = labels
+        self.test_samples = list(np.array(test_samples))
+        self.test_labels = list(np.array(test_labels))
 
     # Returns the sample and class at the given index
     # Can be called as dataset[i] and works with dataloader

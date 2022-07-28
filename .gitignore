@@ -12,6 +12,7 @@ build/
 data/
 runs/
 logs/
+checkpoints/
 out/
 lightning_logs/
 x_vectors/
