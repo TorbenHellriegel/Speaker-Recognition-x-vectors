@@ -35,8 +35,6 @@ class Dataset(Dataset):
         self.mfcc_nfilt = mfcc_nfilt
         self.mfcc_nfft = mfcc_nfft
 
-        self.init_samples_and_labels()
-
     def init_samples_and_labels(self):
         vox_train_path = self.data_folder_path + '/VoxCeleb/vox1_dev_wav/*/*/*.wav'
         vox_test_path = self.data_folder_path + '/VoxCeleb/vox1_test_wav/*/*/*.wav'

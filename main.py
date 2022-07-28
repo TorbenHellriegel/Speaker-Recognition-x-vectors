@@ -74,8 +74,17 @@ class XVectorModel(pl.LightningModule):
 
     def training_step_end(self, outputs):
         self.log('train_step_loss', outputs['loss'])
-        self.accuracy(outputs['train_preds'], outputs['train_labels'])
+        accuracy = self.accuracy(outputs['train_preds'], outputs['train_labels'])
         self.log('train_step_acc', self.accuracy)
+        return {'loss': outputs['loss'], 'acc': accuracy}
+
+    def training_epoch_end(self, outputs):
+        if(self.current_epoch == 0):
+            sample = torch.rand((1, 299, 24))
+            self.logger.experiment.add_graph(XVectorModel(), sample)
+
+        for name, params in self.named_parameters():
+            self.logger.experiment.add_histogram(name, params, self.current_epoch)
 
     def validation_step(self, batch, batch_index):
         samples, labels = batch
@@ -85,8 +94,13 @@ class XVectorModel(pl.LightningModule):
 
     def validation_step_end(self, outputs):
         self.log('val_step_loss', outputs['loss'])
-        self.accuracy(outputs['val_preds'], outputs['val_labels'])
+        accuracy = self.accuracy(outputs['val_preds'], outputs['val_labels'])
         self.log('val_step_acc', self.accuracy)
+        return {'loss': outputs['loss'], 'acc': accuracy}
+
+    def validation_epoch_end(self, outputs):
+        #TODO figure out how to plot 2in1
+        todo=0
     
     def test_step(self, batch, batch_index):
         samples, labels = batch
@@ -133,6 +147,7 @@ if __name__ == "__main__":
     model = XVectorModel(input_size=config.input_size, hidden_size=config.hidden_size, num_classes=config.num_classes,
                         batch_size=config.batch_size, learning_rate=config.learning_rate, batch_norm=config.batch_norm, dropout_p=config.dropout_p,
                         augmentations_per_sample=config.augmentations_per_sample, data_folder_path=config.data_folder_path)
+    model.dataset.init_samples_and_labels()
 
     trainer = pl.Trainer(callbacks=[EarlyStopping(monitor="val_step_loss", mode="min"), checkpoint_callback],
                         logger=tb_logger, log_every_n_steps=1,
