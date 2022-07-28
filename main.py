@@ -17,28 +17,39 @@ from tdnn import TdnnLayer
 
 
 class XVectorModel(pl.LightningModule):
-    def __init__(self, input_size, hidden_size, num_classes, batch_size, learning_rate, data_folder_path):
+    def __init__(self, input_size=24, hidden_size=512, num_classes=1211,
+                batch_size=512, learning_rate=0.001, batch_norm=True, dropout_p=0.0,
+                augmentations_per_sample=2, data_folder_path='data'):
         super().__init__()
 
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        self.num_classes = num_classes
+        self.batch_size = batch_size
+        self.learning_rate = learning_rate
+        self.batch_norm = batch_norm
+        self.dropout_p = dropout_p
+        self.augmentations_per_sample = augmentations_per_sample
+        self.data_folder_path = data_folder_path
+
         self.time_context_layers = nn.Sequential(
-            TdnnLayer(input_size=input_size, output_size=hidden_size, context=[-2, -1, 0, 1, 2]),
-            TdnnLayer(input_size=hidden_size, output_size=hidden_size, context=[-2, 0, 2]),
-            TdnnLayer(input_size=hidden_size, output_size=hidden_size, context=[-3, 0, 3]),
-            TdnnLayer(input_size=hidden_size, output_size=hidden_size),
-            TdnnLayer(input_size=hidden_size, output_size=1500)
+            TdnnLayer(input_size=self.input_size, output_size=self.hidden_size, context=[-2, -1, 0, 1, 2], batch_norm=self.batch_norm, dropout_p=self.dropout_p),
+            TdnnLayer(input_size=self.hidden_size, output_size=self.hidden_size, context=[-2, 0, 2], batch_norm=self.batch_norm, dropout_p=self.dropout_p),
+            TdnnLayer(input_size=self.hidden_size, output_size=self.hidden_size, context=[-3, 0, 3], batch_norm=self.batch_norm, dropout_p=self.dropout_p),
+            TdnnLayer(input_size=self.hidden_size, output_size=self.hidden_size, batch_norm=self.batch_norm, dropout_p=self.dropout_p),
+            TdnnLayer(input_size=self.hidden_size, output_size=1500, batch_norm=self.batch_norm, dropout_p=self.dropout_p)
         )
         self.segment_layer6 = nn.Linear(3000, hidden_size)
         self.segment_layer7 = nn.Linear(hidden_size, hidden_size)
         self.output = nn.Linear(hidden_size, num_classes)
 
-        self.batch_size = batch_size
-        self.learning_rate = learning_rate
-        self.data_folder_path = data_folder_path
-
-        self.dataset = Dataset(data_folder_path=self.data_folder_path)
+        self.dataset = Dataset(data_folder_path=data_folder_path, augmentations_per_sample=self.augmentations_per_sample)
         self.accuracy = torchmetrics.Accuracy()
 
-        self.save_hyperparameters(input_size, hidden_size, num_classes, batch_size, learning_rate)
+        self.save_hyperparameters(self.input_size, self.hidden_size, self.num_classes,
+                                    self.batch_size, self.learning_rate,
+                                    self.batch_norm, self.dropout_p,
+                                    self.augmentations_per_sample)
 
     # Satistic pooling layer
     def stat_pool(self, x): #TODO replace with nn.averagepool2d
@@ -125,13 +136,19 @@ class XVectorModel(pl.LightningModule):
 if __name__ == "__main__":
     # Define parameters, model, logger and trainer
     config = Config() #adjust batch size, epoch, etc. here
+
     tb_logger = pl_loggers.TensorBoardLogger(save_dir="logs/")
-    checkpoint_callback = ModelCheckpoint(dirpath='checkpoints/', monitor='val_loss', save_last=True, save_top_k=10, verbose=True) #TODO implement model checkpoint
-    model = XVectorModel(config.input_size, config.hidden_size, config.num_classes,
-                        config.batch_size, config.learning_rate, config.data_folder_path) #TODO mer checkpints
-    trainer = pl.Trainer(callbacks=[EarlyStopping(monitor="val_loss", mode="min")], callbacks=[checkpoint_callback],
-                        strategy='ddp', accelerator='gpu', devices=2, max_epochs=config.num_epochs,
-                        logger=tb_logger, log_every_n_steps=1) #small test adjust options: fast_dev_run=True, limit_train_batches=0.001, limit_test_batches=0.001
+    checkpoint_callback = ModelCheckpoint(dirpath='checkpoints/', monitor='val_loss', save_last=True, save_top_k=10, verbose=True)
+
+    model = XVectorModel(input_size=config.input_size, hidden_size=config.hidden_size, num_classes=config.num_classes,
+                        batch_size=config.batch_size, learning_rate=config.learning_rate, batch_norm=config.batch_norm, dropout_p=config.dropout_p,
+                        augmentations_per_sample=config.augmentations_per_sample, data_folder_path=config.data_folder_path)
+
+    trainer = pl.Trainer(callbacks=[EarlyStopping(monitor="val_loss", mode="min"), checkpoint_callback],
+                        logger=tb_logger, log_every_n_steps=1,
+                        strategy='ddp', accelerator='gpu', devices=2,
+                        max_epochs=config.num_epochs)
+                        #small test adjust options: fast_dev_run=True, limit_train_batches=0.001, limit_test_batches=0.001, limit_val_batches=0.001
 
     # Train the x-vector model
     trainer.fit(model)#, ckpt_path="logs/lightning_logs/version_0/checkpoints/epoch=0-step=436.ckpt")

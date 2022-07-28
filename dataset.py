@@ -40,7 +40,7 @@ class Dataset(Dataset):
         vox_train_path = self.data_folder_path + '/VoxCeleb/vox1_dev_wav/*/*/*.wav'
         vox_test_path = self.data_folder_path + '/VoxCeleb/vox1_test_wav/*/*/*.wav'
 
-        # Get the paths to all the data samples
+        # Get the paths to all train and val data samples
         globs = glob.glob(vox_train_path)
         
         # Gat the list of samples and labels
@@ -61,8 +61,7 @@ class Dataset(Dataset):
             self.val_samples = self.val_samples + l[:val_split]
             self.val_labels = self.val_labels + l[:val_split]
             
-
-        # Get the paths to all the data samples
+        # Get the paths to all test data samples
         globs = glob.glob(vox_test_path)
         
         # Gat the list of samples and labels

@@ -3,16 +3,21 @@ import torch.nn as nn
 
 
 class TdnnLayer(nn.Module):
-    def __init__(self, input_size=24, output_size=512, context=[0]):
+    def __init__(self, input_size=24, output_size=512, context=[0], batch_norm=True, dropout_p=0.0):
         super(TdnnLayer, self).__init__()
 
         self.input_size = input_size
         self.output_size = output_size
         self.context = context
+        self.batch_norm = batch_norm
+        self.dropout_p = dropout_p
 
         self.linear = nn.Linear(input_size*len(context), output_size)
         self.relu = nn.ReLU()
-        self.norm = nn.BatchNorm1d(output_size)
+        if(self.batch_norm):
+            self.norm = nn.BatchNorm1d(output_size)
+        if(self.dropout_p):
+            self.drop = nn.Dropout(p=self.dropout_p)
 
     def forward(self, x):
 
@@ -20,10 +25,14 @@ class TdnnLayer(nn.Module):
         x = torch.cat(x_context, 2)
         x = self.linear(x)
         x = self.relu(x)
+        
+        if(self.dropout_p):
+            x = self.drop(x)
 
-        x = x.transpose(1,2)
-        x = self.norm(x)
-        x = x.transpose(1,2)
+        if(self.batch_norm):
+            x = x.transpose(1,2)
+            x = self.norm(x)
+            x = x.transpose(1,2)
 
         return x
 
