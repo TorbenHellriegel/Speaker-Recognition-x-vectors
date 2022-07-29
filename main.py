@@ -17,6 +17,7 @@ from tdnn import TdnnLayer
 
 class XVectorModel(pl.LightningModule):
     def __init__(self, input_size=24, hidden_size=512, num_classes=1211,
+                x_vector_size=512, x_vec_extract_layer=6,
                 batch_size=512, learning_rate=0.001, batch_norm=True, dropout_p=0.0,
                 augmentations_per_sample=2, data_folder_path='data'):
         super().__init__()
@@ -28,10 +29,11 @@ class XVectorModel(pl.LightningModule):
             TdnnLayer(input_size=hidden_size, output_size=hidden_size, batch_norm=batch_norm, dropout_p=dropout_p),
             TdnnLayer(input_size=hidden_size, output_size=1500, batch_norm=batch_norm, dropout_p=dropout_p)
         )
-        self.segment_layer6 = nn.Linear(3000, hidden_size)
-        self.segment_layer7 = nn.Linear(hidden_size, hidden_size)
-        self.output = nn.Linear(hidden_size, num_classes)
+        self.segment_layer6 = nn.Linear(3000, x_vector_size)
+        self.segment_layer7 = nn.Linear(x_vector_size, x_vector_size)
+        self.output = nn.Linear(x_vector_size, num_classes)
 
+        self.x_vec_extract_layer = x_vec_extract_layer
         self.batch_size = batch_size
         self.learning_rate = learning_rate
 
@@ -63,7 +65,14 @@ class XVectorModel(pl.LightningModule):
 
         out = self.stat_pool(out)
 
-        x_vec = self.segment_layer6.forward(out)
+        if(self.x_vec_extract_layer == 6):
+            x_vec = self.segment_layer6.forward(out)
+        elif(self.x_vec_extract_layer == 7):
+            out = F.relu(self.segment_layer6.forward(out))
+            x_vec = self.segment_layer7.forward(out)
+        else:
+            x_vec = self.segment_layer6.forward(out)
+            
         return x_vec
 
     def training_step(self, batch, batch_index):
@@ -142,16 +151,18 @@ if __name__ == "__main__":
     config = Config() #adjust batch size, epoch, etc. here
 
     tb_logger = pl_loggers.TensorBoardLogger(save_dir="./")
+    early_stopping_callback = EarlyStopping(monitor="val_step_loss", mode="min")
     checkpoint_callback = ModelCheckpoint(monitor='val_step_loss', save_top_k=10, save_last=True, verbose=True)
 
     model = XVectorModel(input_size=config.input_size, hidden_size=config.hidden_size, num_classes=config.num_classes,
+                        x_vector_size=config.x_vector_size, x_vec_extract_layer=config.x_vec_extract_layer,
                         batch_size=config.batch_size, learning_rate=config.learning_rate, batch_norm=config.batch_norm, dropout_p=config.dropout_p,
                         augmentations_per_sample=config.augmentations_per_sample, data_folder_path=config.data_folder_path)
     model.dataset.init_samples_and_labels()
 
-    trainer = pl.Trainer(callbacks=[EarlyStopping(monitor="val_step_loss", mode="min"), checkpoint_callback],
+    trainer = pl.Trainer(callbacks=[early_stopping_callback, checkpoint_callback],
                         logger=tb_logger, log_every_n_steps=1,
-                        strategy='ddp', accelerator='gpu', devices=2,
+                        accelerator='gpu', devices=[1], #strategy='ddp', 
                         max_epochs=config.num_epochs)
                         #small test adjust options: fast_dev_run=True, limit_train_batches=0.001, limit_val_batches=0.01, limit_test_batches=0.01
 

@@ -4,6 +4,8 @@ class Config:
                 input_size=24,
                 hidden_size=512,
                 num_classes=1211,
+                x_vector_size=512,
+                x_vec_extract_layer=6,
                 learning_rate=0.001,
                 num_epochs=6,
                 batch_norm=True,
@@ -16,6 +18,8 @@ class Config:
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.num_classes = num_classes
+        self.x_vector_size = x_vector_size
+        self.x_vec_extract_layer = x_vec_extract_layer
         self.learning_rate = learning_rate
         self.num_epochs = num_epochs
         self.batch_norm = batch_norm
