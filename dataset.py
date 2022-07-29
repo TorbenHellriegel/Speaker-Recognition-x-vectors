@@ -1,4 +1,5 @@
 import glob
+import math
 import os
 import random
 
@@ -60,8 +61,11 @@ class Dataset(Dataset):
         skf = StratifiedKFold(n_splits=10)
         train_index, val_index = [], []
         for traini, vali in skf.split(samples, labels):
-            train_index = traini
-            val_index = vali
+            if(len(vali) == int(round(len(samples)/10))):
+                train_index = traini
+                val_index = vali
+        if(len(train_index) <= 1):
+            print('StratifiedKFold Failed')
         
         self.train_samples = list(np.array(samples)[train_index])
         self.train_labels = list(np.array(labels)[train_index])

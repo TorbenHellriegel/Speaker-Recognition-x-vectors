@@ -162,7 +162,7 @@ if __name__ == "__main__":
 
     trainer = pl.Trainer(callbacks=[early_stopping_callback, checkpoint_callback],
                         logger=tb_logger, log_every_n_steps=1,
-                        accelerator='gpu', devices=[1], #strategy='ddp', 
+                        strategy='ddp', accelerator='gpu', devices=[0,1], #
                         max_epochs=config.num_epochs)
                         #small test adjust options: fast_dev_run=True, limit_train_batches=0.001, limit_val_batches=0.01, limit_test_batches=0.01
 
