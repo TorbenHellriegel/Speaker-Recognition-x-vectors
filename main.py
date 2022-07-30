@@ -124,7 +124,7 @@ class XVectorModel(pl.LightningModule):
         return test_step_outputs
     
     def configure_optimizers(self):
-        return torch.optim.Adam(model.parameters(), lr=self.learning_rate)
+        return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
 
     def train_dataloader(self):
         self.dataset.load_data(train=True)
@@ -162,7 +162,7 @@ if __name__ == "__main__":
 
     trainer = pl.Trainer(callbacks=[early_stopping_callback, checkpoint_callback],
                         logger=tb_logger, log_every_n_steps=1,
-                        strategy='ddp', accelerator='gpu', devices=[0,1], #
+                        accelerator='gpu', devices=[0],#strategy='ddp',
                         max_epochs=config.num_epochs)
                         #small test adjust options: fast_dev_run=True, limit_train_batches=0.001, limit_val_batches=0.01, limit_test_batches=0.01
 
