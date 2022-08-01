@@ -86,4 +86,4 @@ if __name__ == "__main__":
     en_sets, en_stat = get_enroll_x_vec()
     te_sets, te_stat = get_test_x_vec()
     test_plda(en_sets, en_stat, te_sets, te_stat)
-    print('done')
+    print('DONE')

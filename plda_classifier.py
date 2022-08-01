@@ -22,7 +22,7 @@ def get_train_x_vec(train_xv, train_label):
 def train_plda_on_x_vec(xvectors_stat, rank_f=5):
     # Training PLDA model: M ~ (mean, F, Sigma)
     plda = PLDA(rank_f=rank_f)
-    plda.plda(xvectors_stat)
+    plda.plda(xvectors_stat, output_file_name='plda/plda_model')
     return plda
 
 def get_enroll_x_vec(en_xv, en_label):
