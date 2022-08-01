@@ -26,12 +26,12 @@ def train_plda_on_x_vec(xvectors_stat):
     # Training PLDA model: M ~ (mean, F, Sigma)
     plda = PLDA(rank_f=5)
     plda.plda(xvectors_stat)
-    # print ('plda.mean', plda.mean)
-    # print ('plda.mean.shape', plda.mean.shape)
-    # print ('plda.F', plda.F)
-    # print ('plda.F.shape', plda.F.shape)
-    # print ('plda.Sigma', plda.Sigma)
-    # print ('plda.Sigma.shape', plda.Sigma.shape)
+    if(print_array): print ('plda.mean', plda.mean)
+    if(print_shape): print ('plda.mean.shape', plda.mean.shape)
+    if(print_array): print ('plda.F', plda.F)
+    if(print_shape): print ('plda.F.shape', plda.F.shape)
+    if(print_array): print ('plda.Sigma', plda.Sigma)
+    if(print_shape): print ('plda.Sigma.shape', plda.Sigma.shape)
     return plda
 
 def get_enroll_x_vec():
@@ -72,11 +72,13 @@ def test_plda(en_sets, en_stat, te_sets, te_stat):
 
     # PLDA Scoring
     scores_plda = fast_PLDA_scoring(en_stat, te_stat, ndx, plda.mean, plda.F, plda.Sigma)
-    # print ('scores_plda.scoremat', scores_plda.scoremat)
-    # print ('scores_plda.scoremat.shape', scores_plda.scoremat.shape)
+    if(print_array): print ('scores_plda.scoremat', scores_plda.scoremat)
+    if(print_shape): print ('scores_plda.scoremat.shape', scores_plda.scoremat.shape)
 
 if __name__ == "__main__":
     # Define x_vec_dimensions, num_of_speakers
+    print_array = False
+    print_shape = True
     dim= 10
     n_spkrs = 10
     xvectors_stat = get_train_x_vec()

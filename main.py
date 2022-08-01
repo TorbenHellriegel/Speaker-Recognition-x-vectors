@@ -8,10 +8,12 @@ import torchmetrics
 from pytorch_lightning import loggers as pl_loggers
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+from sklearn.model_selection import StratifiedKFold
 from torch.utils.data import DataLoader
 
 from config import Config
 from dataset import Dataset
+from plda_classifier import *
 from tdnn import TdnnLayer
 
 
@@ -148,9 +150,9 @@ class XVectorModel(pl.LightningModule):
 if __name__ == "__main__":
     # Define model and trainer
     print('setting up model and trainer parameters')
-    config = Config() #adjust batch size, epoch, etc. here
+    config = Config(batch_size=16, num_epochs=1) #adjust batch size, epoch, etc. here
 
-    tb_logger = pl_loggers.TensorBoardLogger(save_dir="./")
+    tb_logger = pl_loggers.TensorBoardLogger(save_dir="testlog/")
     early_stopping_callback = EarlyStopping(monitor="val_step_loss", mode="min")
     checkpoint_callback = ModelCheckpoint(monitor='val_step_loss', save_top_k=10, save_last=True, verbose=True)
 
@@ -162,8 +164,8 @@ if __name__ == "__main__":
 
     trainer = pl.Trainer(callbacks=[early_stopping_callback, checkpoint_callback],
                         logger=tb_logger, log_every_n_steps=1,
-                        accelerator='gpu', devices=[0],#strategy='ddp',
-                        max_epochs=config.num_epochs)
+                        accelerator='cpu',# devices=[0],# strategy='ddp',
+                        max_epochs=config.num_epochs, limit_train_batches=0.001, limit_val_batches=0.01, limit_test_batches=0.01)
                         #small test adjust options: fast_dev_run=True, limit_train_batches=0.001, limit_val_batches=0.01, limit_test_batches=0.01
 
     # Train the x-vector model
@@ -185,9 +187,28 @@ if __name__ == "__main__":
     x_vec_test = np.array(x_vectors_test[:, 0])
     x_label_test = np.array(x_vectors_test[:, 1])
 
-    # Train PLDA classifier #TODO
+    skf = StratifiedKFold(n_splits=2)
+    enroll_index, test_index = [], []
+    for eni, tei in skf.split(x_vec_test, x_label_test):
+        enroll_index = eni
+        test_index = tei
+        
+    en_xv = list(np.array(x_vec_test)[enroll_index])
+    en_label = list(np.array(x_label_test)[enroll_index])
+    te_xv = list(np.array(x_vec_test)[test_index])
+    te_label = list(np.array(x_label_test)[test_index])
 
-    # Test PLDA classifier #TODO
+    # PLDA classifier #TODO
+    print('plda start')
+    xvectors_stat = get_train_x_vec(x_vec_train, x_label_train)
+    plda = train_plda_on_x_vec(xvectors_stat, rank_f=5)
+    en_sets, en_stat = get_enroll_x_vec(en_xv, en_label)
+    te_sets, te_stat = get_test_x_vec(te_xv, te_label)
+    scores_plda = test_plda(en_sets, en_stat, te_sets, te_stat)
+    print ('scores_plda.scoremat', scores_plda.scoremat)
+    ('scores_plda.scoremat.shape', scores_plda.scoremat.shape)
+    print('plda done')
+    # PLDA classifier #TODO
 
     print('done')
 '''
