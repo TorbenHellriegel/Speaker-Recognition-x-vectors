@@ -68,9 +68,12 @@ def get_train_x_vec(train_xv, train_label):
     xvectors_stat = StatObject_SB(modelset=modelset, segset=segset, start=s, stop=s, stat0=stat0, stat1=train_xv)
     return xvectors_stat
 
-def train_plda_on_x_vec(xvectors_stat, rank_f=5):
+def setup_plda(mean=None, F=None, Sigma=None, rank_f=150, nb_iter=1, scaling_factor=1):
+    plda = PLDA(mean=mean, F=F, Sigma=Sigma, rank_f=rank_f, nb_iter=nb_iter, scaling_factor=scaling_factor)
+    return plda
+
+def train_plda(plda, xvectors_stat):
     # Training PLDA model: M ~ (mean, F, Sigma)
-    plda = PLDA(rank_f=rank_f)
     plda.plda(xvectors_stat)
     return plda
 

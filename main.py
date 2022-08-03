@@ -195,8 +195,9 @@ if __name__ == "__main__":
 
     # Training plda
     print('training plda')
+    plda = setup_plda(rank_f=config.plda_rank_f)
     xvectors_stat = get_train_x_vec(x_vec_train, x_label_train)
-    plda = train_plda_on_x_vec(xvectors_stat, rank_f=config.plda_rank_f)
+    plda = train_plda(plda, xvectors_stat)
 
     # Testing plda
     print('testing plda')

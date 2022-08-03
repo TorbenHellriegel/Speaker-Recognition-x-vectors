@@ -1,7 +1,6 @@
 import random
 
 import numpy as np
-from speechbrain.processing.PLDA_LDA import *
 
 from main import split_en_te
 from plda_classifier import *
@@ -17,19 +16,28 @@ x_label_test = np.array([int(i/10) for i in range(50, 100)])
 print('splitting testing data into enroll and test data')
 en_xv, en_label, te_xv, te_label = split_en_te(x_vec_test, x_label_test)
 
-# Training plda
-print('training plda')
+# Generate x_vec stat objects
+print('generating x_vec stat objects')
 xvectors_stat = get_train_x_vec(x_vec_train, x_label_train)
-plda = train_plda_on_x_vec(xvectors_stat, rank_f=10)
-
-# Testing plda
-print('testing plda')
 en_sets, en_stat = get_enroll_x_vec(en_xv)
 te_sets, te_stat = get_test_x_vec(te_xv)
-scores_plda = test_plda(plda, en_sets, en_stat, te_sets, te_stat)
 
-mask = np.array(np.diag(np.diag(np.ones(scores_plda.scoremat.shape, dtype=np.int32))), dtype=bool)
-scores = scores_plda.scoremat[mask]
-print('scores', scores)
+# PLDA train test loop
+num_train_iter = 5
+plda = setup_plda(rank_f=10, nb_iter=1) #load old plda here
+for i in range(num_train_iter):
+    # Training plda
+    print('training plda')#TODO check if the iter goeas over all iter every time
+    plda = setup_plda(mean=plda.mean, F=plda.F, Sigma=plda.Sigma, rank_f=plda.rank_f, nb_iter=plda.nb_iter+1, scaling_factor=plda.scaling_factor)
+    plda = train_plda(plda, xvectors_stat)
+
+    # Testing plda
+    print('testing plda')
+    scores_plda = test_plda(plda, en_sets, en_stat, te_sets, te_stat)
+
+    mask = np.array(np.diag(np.diag(np.ones(scores_plda.scoremat.shape, dtype=np.int32))), dtype=bool)
+    scores = scores_plda.scoremat[mask]
+    print('scores', scores)
+    print('mean scores', np.mean(scores))
 
 print('DONE')
