@@ -12,6 +12,7 @@ from torch.utils.data import DataLoader
 
 from config import Config
 from dataset import Dataset
+from plda_classifier import *
 from tdnn import TdnnLayer
 
 
@@ -120,7 +121,8 @@ class XVectorModel(pl.LightningModule):
         for batch_output in test_step_outputs:
             for x_vec, label in batch_output:
                 for x, l in zip(x_vec, label):
-                    x_vectors.append((x.cpu().numpy(), l.cpu().numpy()))
+                    x_vectors.append(np.array(x.cpu().numpy(), dtype=np.float64))
+                    x_labels.append(int(l.cpu().numpy()))
         return test_step_outputs
     
     def configure_optimizers(self):
@@ -158,38 +160,55 @@ if __name__ == "__main__":
                         x_vector_size=config.x_vector_size, x_vec_extract_layer=config.x_vec_extract_layer,
                         batch_size=config.batch_size, learning_rate=config.learning_rate, batch_norm=config.batch_norm, dropout_p=config.dropout_p,
                         augmentations_per_sample=config.augmentations_per_sample, data_folder_path=config.data_folder_path)
+    #model = XVectorModel.load_from_checkpoint("lightning_logs/x_vector_v1/checkpoints/last.ckpt")
     model.dataset.init_samples_and_labels()
 
     trainer = pl.Trainer(callbacks=[early_stopping_callback, checkpoint_callback],
                         logger=tb_logger, log_every_n_steps=1,
-                        accelerator='gpu', devices=[0],#strategy='ddp',
+                        accelerator='gpu', devices=[1],# strategy='ddp',
                         max_epochs=config.num_epochs)
                         #small test adjust options: fast_dev_run=True, limit_train_batches=0.001, limit_val_batches=0.01, limit_test_batches=0.01
 
     # Train the x-vector model
-    trainer.fit(model)#, ckpt_path="logs/lightning_logs/version_0/checkpoints/epoch=0-step=436.ckpt")
+    print('training x-vector model')
+    trainer.fit(model)#, ckpt_path='lightning_logs/x_vector_v1/checkpoints/last.ckpt')
     
     # Extract the x-vectors
+    print('extracting x-vectors')
     x_vectors = []
+    x_labels = []
     extract_mode = 'train'
     trainer.test(model)
-    x_vectors_train = np.array(x_vectors, dtype=np.ndarray)
+    x_vec_train = np.array(x_vectors, dtype=np.float64)
+    x_label_train = np.array(x_labels, dtype=np.int32)
     
     x_vectors = []
+    x_labels = []
     extract_mode = 'test'
     trainer.test(model)
-    x_vectors_test = np.array(x_vectors, dtype=np.ndarray)
+    x_vec_test = np.array(x_vectors, dtype=np.float64)
+    x_label_test = np.array(x_labels, dtype=np.int32)
     
-    x_vec_train = np.array(x_vectors_train[:, 0])
-    x_label_train = np.array(x_vectors_train[:, 1])
-    x_vec_test = np.array(x_vectors_test[:, 0])
-    x_label_test = np.array(x_vectors_test[:, 1])
+    # Split testing data into enroll and test data
+    print('splitting testing data into enroll and test data')
+    en_xv, en_label, te_xv, te_label = split_en_te(x_vec_test, x_label_test)
 
-    # Train PLDA classifier #TODO
+    # Training plda
+    print('training plda')
+    xvectors_stat = get_train_x_vec(x_vec_train, x_label_train)
+    plda = train_plda_on_x_vec(xvectors_stat, rank_f=config.plda_rank_f)
 
-    # Test PLDA classifier #TODO
+    # Testing plda
+    print('testing plda')
+    en_sets, en_stat = get_enroll_x_vec(en_xv)
+    te_sets, te_stat = get_test_x_vec(te_xv)
+    scores_plda = test_plda(plda, en_sets, en_stat, te_sets, te_stat)
+    
+    mask = np.array(np.diag(np.diag(np.ones(scores_plda.scoremat.shape, dtype=np.int32))), dtype=bool)
+    scores = scores_plda.scoremat[mask]
+    print('scores', scores)
 
-    print('done')
+    print('DONE')
 '''
 Notes:
 

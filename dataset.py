@@ -74,8 +74,7 @@ class Dataset(Dataset):
             
         # Get the paths to all test data samples
         globs = glob.glob(vox_test_path)
-        print('done')
-        print('collectiong training and validation samples')
+        print('collectiong test samples')
         
         # Gat the list of samples and labels
         test_samples = [(sample, 'none') for sample in globs]
@@ -89,7 +88,7 @@ class Dataset(Dataset):
         print(len(unique_labels), ' unique speakers')
         print(int(len(test_samples)/(self.augmentations_per_sample+1)), ' voice samples')
         print(len(test_samples), ' total voice samples including augmentations')
-        print('done')
+        print('DONE collectiong samples')
 
         self.test_samples = list(np.array(test_samples))
         self.test_labels = list(np.array(test_labels))
