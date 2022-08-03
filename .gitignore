@@ -15,6 +15,7 @@ logs/
 checkpoints/
 out/
 lightning_logs/
+lightning_logs copy/
 x_vectors/
 develop-eggs/
 dist/

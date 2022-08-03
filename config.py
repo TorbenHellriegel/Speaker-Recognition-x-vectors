@@ -11,6 +11,7 @@ class Config:
                 batch_norm=True,
                 dropout_p=0.0,
                 augmentations_per_sample=2,
+                plda_rank_f=150,
                 model_path='./trained_models/x_vector_model.pth',
                 data_folder_path='../../../../../../../../../data/7hellrie'):
                 
@@ -25,5 +26,6 @@ class Config:
         self.batch_norm = batch_norm
         self.dropout_p = dropout_p
         self.augmentations_per_sample = augmentations_per_sample
+        self.plda_rank_f = plda_rank_f
         self.model_path = model_path
         self.data_folder_path = data_folder_path
