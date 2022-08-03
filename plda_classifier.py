@@ -1,3 +1,5 @@
+import pickle
+
 import numpy as np
 from sklearn.model_selection import StratifiedKFold
 from speechbrain.processing.PLDA_LDA import *
@@ -68,7 +70,7 @@ def get_train_x_vec(train_xv, train_label):
     xvectors_stat = StatObject_SB(modelset=modelset, segset=segset, start=s, stop=s, stat0=stat0, stat1=train_xv)
     return xvectors_stat
 
-def setup_plda(mean=None, F=None, Sigma=None, rank_f=150, nb_iter=1, scaling_factor=1):
+def setup_plda(mean=None, F=None, Sigma=None, rank_f=150, nb_iter=10, scaling_factor=1):
     plda = PLDA(mean=mean, F=F, Sigma=Sigma, rank_f=rank_f, nb_iter=nb_iter, scaling_factor=scaling_factor)
     return plda
 
@@ -114,3 +116,17 @@ def test_plda(plda, en_sets, en_stat, te_sets, te_stat):
     # PLDA Scoring
     scores_plda = fast_PLDA_scoring(en_stat, te_stat, ndx, plda.mean, plda.F, plda.Sigma, p_known=0.0)
     return scores_plda
+
+def save_plda(plda, file_name):
+    try:
+        with open('plda/'+file_name+'.pickle', 'wb') as f:
+            pickle.dump(plda, f, protocol=pickle.HIGHEST_PROTOCOL)
+    except Exception as ex:
+        print('Error during pickling plda: ', ex)
+
+def load_plda(file_path_name):
+    try:
+        with open(file_path_name, 'rb') as f:
+            return pickle.load(f)
+    except Exception as ex:
+        print('Error during pickling plda: ', ex)
