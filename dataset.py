@@ -58,7 +58,7 @@ class Dataset(Dataset):
         print(len(samples), ' total voice samples including augmentations')
         print('splitting into 90% training and 10% validation')
 
-        skf = StratifiedKFold(n_splits=10)
+        skf = StratifiedKFold(n_splits=10, shuffle=True)
         train_index, val_index = [], []
         for traini, vali in skf.split(samples, labels):
             if(len(vali) == int(round(len(samples)/10))):

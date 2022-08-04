@@ -6,7 +6,7 @@ from speechbrain.processing.PLDA_LDA import *
 
 
 def split_en_te(x_vec_test, x_label_test, mean_same_speaker=False):
-    skf = StratifiedKFold(n_splits=2)
+    skf = StratifiedKFold(n_splits=2, shuffle=True)
     enroll_index, test_index = [], []
     for eni, tei in skf.split(x_vec_test, x_label_test):
         enroll_index = eni
@@ -22,10 +22,10 @@ def split_en_te(x_vec_test, x_label_test, mean_same_speaker=False):
         if(el==tl):
             match_index.append(i)
         
-    enroll_xv = x_vec_test[match_index]
-    enroll_label = x_label_test[match_index]
-    test_xv = x_vec_test[match_index]
-    test_label = x_label_test[match_index]
+    enroll_xv = enroll_xv[match_index]
+    enroll_label = enroll_label[match_index]
+    test_xv = test_xv[match_index]
+    test_label = test_label[match_index]
     
     if(mean_same_speaker):
         en_xv, en_label = mean_same_speakers(enroll_xv, enroll_label)

@@ -1,5 +1,6 @@
 import numpy as np
 import pytorch_lightning as pl
+import sklearn
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -156,11 +157,11 @@ if __name__ == "__main__":
     early_stopping_callback = EarlyStopping(monitor="val_step_loss", mode="min")
     checkpoint_callback = ModelCheckpoint(monitor='val_step_loss', save_top_k=10, save_last=True, verbose=True)
 
-    model = XVectorModel(input_size=config.input_size, hidden_size=config.hidden_size, num_classes=config.num_classes,
-                        x_vector_size=config.x_vector_size, x_vec_extract_layer=config.x_vec_extract_layer,
-                        batch_size=config.batch_size, learning_rate=config.learning_rate, batch_norm=config.batch_norm, dropout_p=config.dropout_p,
-                        augmentations_per_sample=config.augmentations_per_sample, data_folder_path=config.data_folder_path)
-    #model = XVectorModel.load_from_checkpoint("lightning_logs/x_vector_v1/checkpoints/last.ckpt")
+    # model = XVectorModel(input_size=config.input_size, hidden_size=config.hidden_size, num_classes=config.num_classes,
+    #                     x_vector_size=config.x_vector_size, x_vec_extract_layer=config.x_vec_extract_layer,
+    #                     batch_size=config.batch_size, learning_rate=config.learning_rate, batch_norm=config.batch_norm, dropout_p=config.dropout_p,
+    #                     augmentations_per_sample=config.augmentations_per_sample, data_folder_path=config.data_folder_path)
+    model = XVectorModel.load_from_checkpoint("lightning_logs/x_vector_v1_1/checkpoints/last.ckpt")
     model.dataset.init_samples_and_labels()
 
     trainer = pl.Trainer(callbacks=[early_stopping_callback, checkpoint_callback],
@@ -213,14 +214,98 @@ if __name__ == "__main__":
     print('scores', scores)
     print('mean score', np.mean(scores))
 
-    pc.save_plda(plda, 'plda_v1')
+    pc.save_plda(plda, 'plda_v1') #TODO change name!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    print('DONE')
+    print('DONE NORMAL CODE########################################################################################################################################################################################################################')
+    print('DONE NORMAL CODE########################################################################################################################################################################################################################')
+    print('DONE NORMAL CODE########################################################################################################################################################################################################################')
+    
+    print('plda.mean', '  (shape: ', plda.mean.shape, ')')
+    print(plda.mean)
+    print('plda.F', '  (shape: ', plda.F.shape, ')')
+    print(plda.F)
+    print('plda.Sigma', '  (shape: ', plda.Sigma.shape, ')')
+    print(plda.Sigma)
+    
+    print('Functional Tests########################################################################################################################################################################################################################')
+
+    print('en_label', '  (shape: ', en_label.shape, ')')
+    print(en_label)
+    print('te_label', '  (shape: ', te_label.shape, ')')
+    print(te_label)
+    print('en_stat.stat1', '  (shape: ', en_stat.stat1.shape, ')')
+    print(en_stat.stat1)
+    print('te_stat.stat1', '  (shape: ', te_stat.stat1.shape, ')')
+    print(te_stat.stat1)
+
+    print('scores_plda.scoremat', '  (shape: ', scores_plda.scoremat.shape, ')')
+    print(scores_plda.scoremat)
+    print('scores_plda.scoremask', '  (shape: ', np.array(scores_plda.scoremask, dtype=np.int32).shape, ')')
+    print(np.array(scores_plda.scoremask, dtype=np.int32))
+
+    sm_scores = scores_plda.scoremat[scores_plda.scoremask]
+
+    print('scoremask scores', sm_scores)
+    print('scoremask min score', np.min(sm_scores))
+    print('scoremask mean score', np.mean(sm_scores))
+    print('scoremask max score', np.max(sm_scores))
+    print('scoremask abs min score', np.min(np.abs(sm_scores)))
+    print('scoremask abs mean score', np.mean(np.abs(sm_scores)))
+    print('scoremask abs max score', np.max(np.abs(sm_scores)))
+    
+    print('my scores', scores)
+    print('my min score', np.min(scores))
+    print('my mean score', np.mean(scores))
+    print('my max score', np.max(scores))
+    print('my abs min score', np.min(np.abs(scores)))
+    print('my abs mean score', np.mean(np.abs(scores)))
+    print('my abs max score', np.max(np.abs(scores)))
+
+    print('Shuffle Tests########################################################################################################################################################################################################################')
+
+    te_xv, te_label = sklearn.utils.shuffle(te_xv, te_label)
+    te_sets, te_stat = pc.get_test_x_vec(te_xv)
+
+    scores_plda = pc.test_plda(plda, en_sets, en_stat, te_sets, te_stat)
+    mask = np.array(np.diag(np.diag(np.ones(scores_plda.scoremat.shape, dtype=np.int32))), dtype=bool)
+    scores = scores_plda.scoremat[mask]
+    
+    print('en_label', '  (shape: ', en_label.shape, ')')
+    print(en_label)
+    print('te_label', '  (shape: ', te_label.shape, ')')
+    print(te_label)
+    print('en_stat.stat1', '  (shape: ', en_stat.stat1.shape, ')')
+    print(en_stat.stat1)
+    print('te_stat.stat1', '  (shape: ', te_stat.stat1.shape, ')')
+    print(te_stat.stat1)
+
+    print('scores_plda.scoremat', '  (shape: ', scores_plda.scoremat.shape, ')')
+    print(scores_plda.scoremat)
+    print('scores_plda.scoremask', '  (shape: ', np.array(scores_plda.scoremask, dtype=np.int32).shape, ')')
+    print(np.array(scores_plda.scoremask, dtype=np.int32))
+
+    sm_scores = scores_plda.scoremat[scores_plda.scoremask]
+
+    print('scoremask scores', sm_scores)
+    print('scoremask min score', np.min(sm_scores))
+    print('scoremask mean score', np.mean(sm_scores))
+    print('scoremask max score', np.max(sm_scores))
+    print('scoremask abs min score', np.min(np.abs(sm_scores)))
+    print('scoremask abs mean score', np.mean(np.abs(sm_scores)))
+    print('scoremask abs max score', np.max(np.abs(sm_scores)))
+    
+    print('my scores', scores)
+    print('my min score', np.min(scores))
+    print('my mean score', np.mean(scores))
+    print('my max score', np.max(scores))
+    print('my abs min score', np.min(np.abs(scores)))
+    print('my abs mean score', np.mean(np.abs(scores)))
+    print('my abs max score', np.max(np.abs(scores)))
 '''
 Notes:
 
 Can run in background with this command. Also saves output in .out file:
-nohup python main.py &> out/NAME.out &
+nohup python -u main.py &> out/NAME.out &
 
 my data used
 153516 sample each 3 sec
