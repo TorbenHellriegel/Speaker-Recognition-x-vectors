@@ -148,10 +148,10 @@ class XVectorModel(pl.LightningModule):
             test_data_loader = DataLoader(dataset=self.dataset, batch_size=self.batch_size, num_workers=4, shuffle=False)
         return test_data_loader
 
-if __name__ == "__main__":
+if __name__ == "__main__": #TODO ready to train TODO use command TODO nohup python -u main.py &> out/train_x_vec_v1_2.out &
     # Define model and trainer
     print('setting up model and trainer parameters')
-    config = Config() #adjust batch size, epoch, etc. here
+    config = Config(num_epochs=15) #adjust batch size, epoch, etc. here
 
     tb_logger = pl_loggers.TensorBoardLogger(save_dir="./")
     early_stopping_callback = EarlyStopping(monitor="val_step_loss", mode="min")
@@ -166,20 +166,20 @@ if __name__ == "__main__":
 
     trainer = pl.Trainer(callbacks=[early_stopping_callback, checkpoint_callback],
                         logger=tb_logger, log_every_n_steps=1,
-                        accelerator='gpu', devices=[1],# strategy='ddp',
+                        accelerator='gpu', devices=[0],# strategy='ddp',
                         max_epochs=config.num_epochs)
                         #small test adjust options: fast_dev_run=True, limit_train_batches=0.001, limit_val_batches=0.01, limit_test_batches=0.01
 
     # Train the x-vector model
     print('training x-vector model')
-    trainer.fit(model)#, ckpt_path='lightning_logs/x_vector_v1/checkpoints/last.ckpt')
+    trainer.fit(model, ckpt_path='lightning_logs/x_vector_v1_1/checkpoints/last.ckpt')
     
     # Extract the x-vectors
     print('extracting x-vectors')
     x_vectors = []
     x_labels = []
     extract_mode = 'train'
-    trainer.test(model)
+    '''trainer.test(model)
     x_vec_train = np.array(x_vectors, dtype=np.float64)
     x_label_train = np.array(x_labels, dtype=np.int32)
     
@@ -214,7 +214,7 @@ if __name__ == "__main__":
     print('scores', scores)
     print('mean score', np.mean(scores))
 
-    pc.save_plda(plda, 'plda_v1') #TODO change name!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    pc.save_plda(plda, 'plda_v1')
 
     print('DONE NORMAL CODE########################################################################################################################################################################################################################')
     print('DONE NORMAL CODE########################################################################################################################################################################################################################')
@@ -300,7 +300,9 @@ if __name__ == "__main__":
     print('my max score', np.max(scores))
     print('my abs min score', np.min(np.abs(scores)))
     print('my abs mean score', np.mean(np.abs(scores)))
-    print('my abs max score', np.max(np.abs(scores)))
+    print('my abs max score', np.max(np.abs(scores)))'''
+
+    print('DONE')
 '''
 Notes:
 
