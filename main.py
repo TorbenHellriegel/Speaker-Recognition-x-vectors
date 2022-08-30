@@ -136,8 +136,8 @@ class XVectorModel(pl.LightningModule):
 
     def val_dataloader(self):
         self.dataset.load_data(val=True)
-        train_data_loader = DataLoader(dataset=self.dataset, batch_size=self.batch_size, num_workers=4, shuffle=False)
-        return train_data_loader
+        val_data_loader = DataLoader(dataset=self.dataset, batch_size=self.batch_size, num_workers=4, shuffle=False)
+        return val_data_loader
 
     def test_dataloader(self):
         if(extract_mode == 'train'):

@@ -104,7 +104,7 @@ class Dataset(Dataset):
         augmented_sample = self.augment_data(sample, augmentation)
         augmented_sample = mfcc(augmented_sample, self.sampling_rate, numcep=self.mfcc_numcep, nfilt=self.mfcc_nfilt, nfft=self.mfcc_nfft)#TODO figure out how mfcc works
         
-        return torch.from_numpy(augmented_sample), self.unique_labels.index(self.labels[index])
+        return torch.from_numpy(augmented_sample), self.unique_labels.index(self.labels[index]) #TODO add a way to copy over the sample id (id10270/x6uYqmx31kE/00001)
 
     def __len__(self):
         return self.n_samples

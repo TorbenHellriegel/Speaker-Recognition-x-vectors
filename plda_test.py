@@ -2,6 +2,7 @@ import random
 
 import numpy as np
 import sklearn
+import torch
 
 import plda_classifier as pc
 
@@ -14,7 +15,7 @@ x_label_test = np.array([int(i/10) for i in range(50, 100)])
 
 # Split testing data into enroll and test data
 print('splitting testing data into enroll and test data')
-en_xv, en_label, te_xv, te_label = pc.split_en_te(x_vec_test, x_label_test)
+en_xv, en_label, te_xv, te_label = pc.split_en_te2(x_vec_test, x_label_test)
 
 # Generate x_vec stat objects
 print('generating x_vec stat objects')
@@ -33,13 +34,33 @@ print('testing plda')
 scores_plda = pc.test_plda(plda, en_sets, en_stat, te_sets, te_stat)
 mask = np.array(np.diag(np.diag(np.ones(scores_plda.scoremat.shape, dtype=np.int32))), dtype=bool)
 scores = scores_plda.scoremat[mask]
-print('scores', scores)
-print('mean score', np.mean(scores))
+
+# Dividing scores into positive and negative
+positive_scores = []
+negative_scores = []
+for en, te in zip(en_label, te_label):
+    if(en == te):
+        positive_scores.append(1)
+        negative_scores.append(0)
+    else:
+        positive_scores.append(0)
+        negative_scores.append(1)
+positive_scores_mask = np.array(positive_scores, dtype=bool)
+negative_scores_mask = np.array(negative_scores, dtype=bool)
+positive_scores = scores[positive_scores]
+negative_scores = scores[negative_scores]
+
+# Calculating EER
+eer, th = pc.EER(torch.tensor(positive_scores), torch.tensor(negative_scores))
+
+print('EER: ', eer)
+print('threshold: ', th)
+
+# TODO minDCF
+#min_dcf, th = minDCF( torch.tensor(positive_scores), torch.tensor(negative_scores))
 
 pc.save_plda(plda, 'plda_test')
 
-print('DONE NORMAL CODE########################################################################################################################################################################################################################')
-print('DONE NORMAL CODE########################################################################################################################################################################################################################')
 print('DONE NORMAL CODE########################################################################################################################################################################################################################')
 
 if(False):
@@ -50,7 +71,7 @@ if(False):
     print('plda.Sigma', '  (shape: ', plda.Sigma.shape, ')')
     print(plda.Sigma)
 
-if(True):
+if(False):
     print('Functional Tests########################################################################################################################################################################################################################')
 
     print('en_label', '  (shape: ', en_label.shape, ')')
@@ -127,7 +148,7 @@ if(False):
     print('my abs mean score', np.mean(np.abs(scores)))
     print('my abs max score', np.max(np.abs(scores)))
 
-if(True):
+if(False):
     print('Plot result########################################################################################################################################################################################################################')
     
     from torch.utils.tensorboard import SummaryWriter
@@ -145,5 +166,28 @@ if(True):
     img = np.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
     img[0] = np.array([scores_plda.scoremat*scores_plda.scoremask])
     writer.add_image('masked_scores', img, 0)
+
+    writer.close()
+    
+if(True):
+    print('new test########################################################################################################################################################################################################################')
+    
+    from torch.utils.tensorboard import SummaryWriter
+    
+    writer = SummaryWriter(log_dir="testlogs/lightning_logs/images/0")
+
+    new_mask = np.zeros_like(scores_plda.scoremat)
+    new_mask_inv = np.zeros_like(scores_plda.scoremat)
+    for i, score in enumerate(positive_scores_mask):
+        if(score == 1):
+            new_mask[i,i] = 1
+        else:
+            new_mask_inv[i,i] = 1
+    
+    img = np.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
+    img[2] = np.array([scores_plda.scoremat*~mask])
+    img[1] = np.array([scores_plda.scoremat*new_mask])
+    img[0] = np.array([scores_plda.scoremat*new_mask_inv])
+    writer.add_image('new_masked_scores', img, 0)
 
     writer.close()

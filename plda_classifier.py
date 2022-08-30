@@ -1,11 +1,13 @@
 import pickle
 
 import numpy as np
+import sklearn
+import torch
 from sklearn.model_selection import StratifiedKFold
 from speechbrain.processing.PLDA_LDA import *
 
 
-def split_en_te(x_vec_test, x_label_test, mean_same_speaker=False):
+def split_en_te(x_vec_test, x_label_test, mean_same_speaker=False): #TODO use veri_test_2
     skf = StratifiedKFold(n_splits=2, shuffle=True)
     enroll_index, test_index = [], []
     for eni, tei in skf.split(x_vec_test, x_label_test):
@@ -35,6 +37,21 @@ def split_en_te(x_vec_test, x_label_test, mean_same_speaker=False):
         en_label = enroll_label
         te_xv = test_xv
         te_label = test_label
+
+    return en_xv, en_label, te_xv, te_label
+
+def split_en_te2(x_vec_test, x_label_test, mean_same_speaker=False):
+    same_speaker = []
+    en_xv = []
+    en_label = []
+    te_xv = []
+    te_label = []
+
+    en_xv = x_vec_test
+    en_label = x_label_test
+    x_vec_test, x_label_test = sklearn.utils.shuffle(x_vec_test, x_label_test)
+    te_xv = x_vec_test
+    te_label = x_label_test
 
     return en_xv, en_label, te_xv, te_label
 
@@ -116,6 +133,65 @@ def test_plda(plda, en_sets, en_stat, te_sets, te_stat):
     # PLDA Scoring
     scores_plda = fast_PLDA_scoring(en_stat, te_stat, ndx, plda.mean, plda.F, plda.Sigma, p_known=0.0)
     return scores_plda
+
+def EER(positive_scores, negative_scores):
+    """Computes the EER (and its threshold).
+    Arguments
+    ---------
+    positive_scores : torch.tensor
+        The scores from entries of the same class.
+    negative_scores : torch.tensor
+        The scores from entries of different classes.
+    Example
+    -------
+    >>> positive_scores = torch.tensor([0.6, 0.7, 0.8, 0.5])
+    >>> negative_scores = torch.tensor([0.4, 0.3, 0.2, 0.1])
+    >>> val_eer, threshold = EER(positive_scores, negative_scores)
+    >>> val_eer
+    0.0
+    Credit
+    ------
+    code taken from : https://github.com/Hemanshu-Bhargav/august_speechbrain/blob/2933b2a5a83662e9c554ba15e94f4a9ad31527bc/speechbrain/utils/metric_stats.py#L455
+    """
+
+    # Computing candidate thresholds
+    thresholds, _ = torch.sort(torch.cat([positive_scores, negative_scores]))
+    thresholds = torch.unique(thresholds)
+
+    # Adding intermediate thresholds
+    interm_thresholds = (thresholds[0:-1] + thresholds[1:]) / 2
+    thresholds, _ = torch.sort(torch.cat([thresholds, interm_thresholds]))
+
+    # Computing False Rejection Rate (miss detection)
+    positive_scores = torch.cat(
+        len(thresholds) * [positive_scores.unsqueeze(0)]
+    )
+    pos_scores_threshold = positive_scores.transpose(0, 1) <= thresholds
+    FRR = (pos_scores_threshold.sum(0)).float() / positive_scores.shape[1]
+    del positive_scores
+    del pos_scores_threshold
+
+    # Computing False Acceptance Rate (false alarm)
+    negative_scores = torch.cat(
+        len(thresholds) * [negative_scores.unsqueeze(0)]
+    )
+    neg_scores_threshold = negative_scores.transpose(0, 1) > thresholds
+    FAR = (neg_scores_threshold.sum(0)).float() / negative_scores.shape[1]
+    del negative_scores
+    del neg_scores_threshold
+
+    # Finding the threshold for EER
+    min_index = (FAR - FRR).abs().argmin()
+
+    # It is possible that eer != fpr != fnr. We return (FAR  + FRR) / 2 as EER.
+    EER = (FAR[min_index] + FRR[min_index]) / 2
+
+    return float(EER), float(thresholds[min_index])
+
+positive_scores = torch.tensor([0.6, 0.7, 0.8, 0.4])
+negative_scores = torch.tensor([0.5, 0.3, 0.2, 0.1])
+val_eer, threshold = EER(positive_scores, negative_scores)
+print(val_eer)
 
 def save_plda(plda, file_name):
     try:
