@@ -37,6 +37,9 @@ class TdnnLayer(nn.Module):
         return x
 
 def get_time_context(x, c=[0]):
+    """
+    TODO write doc
+    """
     l = len(c) - 1
     xc =   [x[:, c[l]+cc:c[0]+cc, :]
             if cc!=c[l] else

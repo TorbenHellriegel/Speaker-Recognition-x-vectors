@@ -188,11 +188,6 @@ def EER(positive_scores, negative_scores):
 
     return float(EER), float(thresholds[min_index])
 
-positive_scores = torch.tensor([0.6, 0.7, 0.8, 0.4])
-negative_scores = torch.tensor([0.5, 0.3, 0.2, 0.1])
-val_eer, threshold = EER(positive_scores, negative_scores)
-print(val_eer)
-
 def save_plda(plda, file_name):
     try:
         with open('plda/'+file_name+'.pickle', 'wb') as f:

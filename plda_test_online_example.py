@@ -56,49 +56,47 @@ print("Expected scores:\n", expected_score_matrix)
 dif = numpy.subtract(expected_score_matrix, scores_plda.scoremat)
 f_norm = LA.norm(dif, ord="fro")
 
-
-
-from torch.utils.tensorboard import SummaryWriter
-
-writer = SummaryWriter(log_dir="testlogs/lightning_logs/images/6")
-
-img = numpy.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
-img[0] = numpy.array([scores_plda.scoremat])
-writer.add_image('scores', img, 0)
-
-img = numpy.zeros((3, expected_score_matrix.shape[0], expected_score_matrix.shape[1]))
-img[1] = numpy.array([expected_score_matrix])
-writer.add_image('scores expected', img, 0)
-
-img = numpy.zeros((3, scores_plda.scoremask.shape[0], scores_plda.scoremask.shape[1]))
-img[0] = numpy.array([scores_plda.scoremask])
-writer.add_image('mask', img, 0)
-
-img = numpy.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
-img[0] = numpy.array([scores_plda.scoremat*scores_plda.scoremask])
-writer.add_image('masked_scores', img, 0)
-
-img = numpy.zeros((3, expected_score_matrix.shape[0], expected_score_matrix.shape[1]))
-img[1] = numpy.array([expected_score_matrix*scores_plda.scoremask])
-writer.add_image('masked_scores expected', img, 0)
-
-
-
-img = numpy.zeros((3, train_obj.stat1.shape[0], train_obj.stat1.shape[1]))
-img[2] = numpy.array([train_obj.stat1])
-writer.add_image('masked_scores expected', img, 0)
-
-img = numpy.zeros((3, enrol_obj.stat1.shape[0], enrol_obj.stat1.shape[1]))
-img[2] = numpy.array([enrol_obj.stat1])
-writer.add_image('masked_scores expected', img, 0)
-
-img = numpy.zeros((3, test_obj.stat1.shape[0], test_obj.stat1.shape[1]))
-img[2] = numpy.array([test_obj.stat1])
-writer.add_image('masked_scores expected', img, 0)
-
-writer.close()
-
-
-
 # Integration test: Ensure we get same score matrix
 print(f_norm < 0.1)
+
+
+
+# from torch.utils.tensorboard import SummaryWriter
+
+# writer = SummaryWriter(log_dir="testlogs/lightning_logs/images/6")
+
+# img = numpy.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
+# img[0] = numpy.array([scores_plda.scoremat])
+# writer.add_image('scores', img, 0)
+
+# img = numpy.zeros((3, expected_score_matrix.shape[0], expected_score_matrix.shape[1]))
+# img[1] = numpy.array([expected_score_matrix])
+# writer.add_image('scores expected', img, 0)
+
+# img = numpy.zeros((3, scores_plda.scoremask.shape[0], scores_plda.scoremask.shape[1]))
+# img[0] = numpy.array([scores_plda.scoremask])
+# writer.add_image('mask', img, 0)
+
+# img = numpy.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
+# img[0] = numpy.array([scores_plda.scoremat*scores_plda.scoremask])
+# writer.add_image('masked_scores', img, 0)
+
+# img = numpy.zeros((3, expected_score_matrix.shape[0], expected_score_matrix.shape[1]))
+# img[1] = numpy.array([expected_score_matrix*scores_plda.scoremask])
+# writer.add_image('masked_scores expected', img, 0)
+
+
+
+# img = numpy.zeros((3, train_obj.stat1.shape[0], train_obj.stat1.shape[1]))
+# img[2] = numpy.array([train_obj.stat1])
+# writer.add_image('masked_scores expected', img, 0)
+
+# img = numpy.zeros((3, enrol_obj.stat1.shape[0], enrol_obj.stat1.shape[1]))
+# img[2] = numpy.array([enrol_obj.stat1])
+# writer.add_image('masked_scores expected', img, 0)
+
+# img = numpy.zeros((3, test_obj.stat1.shape[0], test_obj.stat1.shape[1]))
+# img[2] = numpy.array([test_obj.stat1])
+# writer.add_image('masked_scores expected', img, 0)
+
+# writer.close()

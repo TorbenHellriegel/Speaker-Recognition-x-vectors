@@ -27,11 +27,12 @@ te_sets, te_stat = pc.get_test_x_vec(te_xv)
 print('training plda')
 plda = pc.setup_plda(rank_f=10)
 plda = pc.train_plda(plda, xvectors_stat)
+pc.save_plda(plda, 'plda_test')
 #plda = pc.load_plda('plda/plda_v1.pickle')
 
 # Testing plda
 print('testing plda')
-scores_plda = pc.test_plda(plda, en_sets, en_stat, te_sets, te_stat)
+scores_plda = pc.test_plda(plda, en_sets, en_stat, te_sets, te_stat) #TODO test if i can calculate the result myself by using the matrix in plda.F
 mask = np.array(np.diag(np.diag(np.ones(scores_plda.scoremat.shape, dtype=np.int32))), dtype=bool)
 scores = scores_plda.scoremat[mask]
 
@@ -47,8 +48,8 @@ for en, te in zip(en_label, te_label):
         negative_scores.append(1)
 positive_scores_mask = np.array(positive_scores, dtype=bool)
 negative_scores_mask = np.array(negative_scores, dtype=bool)
-positive_scores = scores[positive_scores]
-negative_scores = scores[negative_scores]
+positive_scores = scores[positive_scores_mask]
+negative_scores = scores[negative_scores_mask]
 
 # Calculating EER
 eer, th = pc.EER(torch.tensor(positive_scores), torch.tensor(negative_scores))
@@ -58,8 +59,6 @@ print('threshold: ', th)
 
 # TODO minDCF
 #min_dcf, th = minDCF( torch.tensor(positive_scores), torch.tensor(negative_scores))
-
-pc.save_plda(plda, 'plda_test')
 
 print('DONE NORMAL CODE########################################################################################################################################################################################################################')
 

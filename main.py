@@ -204,6 +204,7 @@ if __name__ == "__main__": #TODO ready to train TODO use command TODO nohup pyth
     print('training plda')
     plda = pc.setup_plda(rank_f=config.plda_rank_f)
     plda = pc.train_plda(plda, xvectors_stat)
+    pc.save_plda(plda, 'plda_v1_1')
     #plda = pc.load_plda('plda/plda_v1.pickle')
 
     # Testing plda
@@ -211,96 +212,27 @@ if __name__ == "__main__": #TODO ready to train TODO use command TODO nohup pyth
     scores_plda = pc.test_plda(plda, en_sets, en_stat, te_sets, te_stat)
     mask = np.array(np.diag(np.diag(np.ones(scores_plda.scoremat.shape, dtype=np.int32))), dtype=bool)
     scores = scores_plda.scoremat[mask]
-    print('scores', scores)
-    print('mean score', np.mean(scores))
 
-    pc.save_plda(plda, 'plda_v1')
+    # Dividing scores into positive and negative
+    positive_scores = []
+    negative_scores = []
+    for en, te in zip(en_label, te_label):
+        if(en == te):
+            positive_scores.append(1)
+            negative_scores.append(0)
+        else:
+            positive_scores.append(0)
+            negative_scores.append(1)
+    positive_scores_mask = np.array(positive_scores, dtype=bool)
+    negative_scores_mask = np.array(negative_scores, dtype=bool)
+    positive_scores = scores[positive_scores]
+    negative_scores = scores[negative_scores]
 
-    print('DONE NORMAL CODE########################################################################################################################################################################################################################')
-    print('DONE NORMAL CODE########################################################################################################################################################################################################################')
-    print('DONE NORMAL CODE########################################################################################################################################################################################################################')
-    
-    print('plda.mean', '  (shape: ', plda.mean.shape, ')')
-    print(plda.mean)
-    print('plda.F', '  (shape: ', plda.F.shape, ')')
-    print(plda.F)
-    print('plda.Sigma', '  (shape: ', plda.Sigma.shape, ')')
-    print(plda.Sigma)
-    
-    print('Functional Tests########################################################################################################################################################################################################################')
+    # Calculating EER
+    eer, th = pc.EER(torch.tensor(positive_scores), torch.tensor(negative_scores))
 
-    print('en_label', '  (shape: ', en_label.shape, ')')
-    print(en_label)
-    print('te_label', '  (shape: ', te_label.shape, ')')
-    print(te_label)
-    print('en_stat.stat1', '  (shape: ', en_stat.stat1.shape, ')')
-    print(en_stat.stat1)
-    print('te_stat.stat1', '  (shape: ', te_stat.stat1.shape, ')')
-    print(te_stat.stat1)
-
-    print('scores_plda.scoremat', '  (shape: ', scores_plda.scoremat.shape, ')')
-    print(scores_plda.scoremat)
-    print('scores_plda.scoremask', '  (shape: ', np.array(scores_plda.scoremask, dtype=np.int32).shape, ')')
-    print(np.array(scores_plda.scoremask, dtype=np.int32))
-
-    sm_scores = scores_plda.scoremat[scores_plda.scoremask]
-
-    print('scoremask scores', sm_scores)
-    print('scoremask min score', np.min(sm_scores))
-    print('scoremask mean score', np.mean(sm_scores))
-    print('scoremask max score', np.max(sm_scores))
-    print('scoremask abs min score', np.min(np.abs(sm_scores)))
-    print('scoremask abs mean score', np.mean(np.abs(sm_scores)))
-    print('scoremask abs max score', np.max(np.abs(sm_scores)))
-    
-    print('my scores', scores)
-    print('my min score', np.min(scores))
-    print('my mean score', np.mean(scores))
-    print('my max score', np.max(scores))
-    print('my abs min score', np.min(np.abs(scores)))
-    print('my abs mean score', np.mean(np.abs(scores)))
-    print('my abs max score', np.max(np.abs(scores)))
-
-    print('Shuffle Tests########################################################################################################################################################################################################################')
-
-    te_xv, te_label = sklearn.utils.shuffle(te_xv, te_label)
-    te_sets, te_stat = pc.get_test_x_vec(te_xv)
-
-    scores_plda = pc.test_plda(plda, en_sets, en_stat, te_sets, te_stat)
-    mask = np.array(np.diag(np.diag(np.ones(scores_plda.scoremat.shape, dtype=np.int32))), dtype=bool)
-    scores = scores_plda.scoremat[mask]
-    
-    print('en_label', '  (shape: ', en_label.shape, ')')
-    print(en_label)
-    print('te_label', '  (shape: ', te_label.shape, ')')
-    print(te_label)
-    print('en_stat.stat1', '  (shape: ', en_stat.stat1.shape, ')')
-    print(en_stat.stat1)
-    print('te_stat.stat1', '  (shape: ', te_stat.stat1.shape, ')')
-    print(te_stat.stat1)
-
-    print('scores_plda.scoremat', '  (shape: ', scores_plda.scoremat.shape, ')')
-    print(scores_plda.scoremat)
-    print('scores_plda.scoremask', '  (shape: ', np.array(scores_plda.scoremask, dtype=np.int32).shape, ')')
-    print(np.array(scores_plda.scoremask, dtype=np.int32))
-
-    sm_scores = scores_plda.scoremat[scores_plda.scoremask]
-
-    print('scoremask scores', sm_scores)
-    print('scoremask min score', np.min(sm_scores))
-    print('scoremask mean score', np.mean(sm_scores))
-    print('scoremask max score', np.max(sm_scores))
-    print('scoremask abs min score', np.min(np.abs(sm_scores)))
-    print('scoremask abs mean score', np.mean(np.abs(sm_scores)))
-    print('scoremask abs max score', np.max(np.abs(sm_scores)))
-    
-    print('my scores', scores)
-    print('my min score', np.min(scores))
-    print('my mean score', np.mean(scores))
-    print('my max score', np.max(scores))
-    print('my abs min score', np.min(np.abs(scores)))
-    print('my abs mean score', np.mean(np.abs(scores)))
-    print('my abs max score', np.max(np.abs(scores)))'''
+    print('EER: ', eer)
+    print('threshold: ', th)'''
 
     print('DONE')
 '''
