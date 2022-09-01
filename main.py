@@ -122,7 +122,7 @@ class XVectorModel(pl.LightningModule):
         for batch_output in test_step_outputs:
             for x_vec, label, id in batch_output:
                 for x, l, i in zip(x_vec, label, id):
-                    x_vector.append(i.cpu(), (int(l.cpu().numpy())), np.array(x.cpu().numpy(), dtype=np.float64))
+                    x_vector.append((i.cpu(), int(l.cpu().numpy()), np.array(x.cpu().numpy(), dtype=np.float64)))
                     # x_vectors.append(np.array(x.cpu().numpy(), dtype=np.float64))
                     # x_labels.append(int(l.cpu().numpy()))
         return test_step_outputs
@@ -206,14 +206,24 @@ if __name__ == "__main__":
 
 
     # Extracting the x-vectors, labels and id from the csv
-    x_vectors_train = pd.read_csv('x_vectors/x_vector_train_v1.csv')
-    x_vec_train = x_vectors_train[0] #TODO how to read panda file
-    x_label_train = x_vectors_train[0] #TODO
-    x_id_train = x_vectors_train[0] #TODO
-    x_vectors_test = pd.read_csv('x_vectors/x_vector_test_v1.csv')
-    x_vec_test = x_vectors_test[0] #TODO
-    x_label_test = x_vectors_test[0] #TODO
-    x_id_test = x_vectors_test[0] #TODO
+    x_vectors_train = np.genfromtxt('x_vectors/x_vector_train_v1.csv', delimiter=',', dtype=np.unicode)[1:]
+    x_id_train = []
+    x_label_train = []
+    x_vec_train = []
+    for x in x_vectors_train:
+        _, x_id, x_label, x_vec = x
+        x_id_train.append(x_id)
+        x_label_train.append(int(x_label))
+        x_vec_train.append(np.array(x_vec[1:-1].split(), dtype=np.float64))
+    x_vectors_test = np.genfromtxt('x_vectors/x_vector_test_v1.csv', delimiter=',', dtype=np.unicode)[1:]
+    x_id_test = []
+    x_label_test = []
+    x_vec_test = []
+    for x in x_vectors_test:
+        _, x_id, x_label, x_vec = x
+        x_id_test.append(x_id)
+        x_label_test.append(int(x_label))
+        x_vec_test.append(np.array(x_vec[1:-1].split(), dtype=np.float64))
 
     # # Split testing data into enroll and test data
     # print('splitting testing data into enroll and test data')
@@ -229,7 +239,7 @@ if __name__ == "__main__":
     print('training plda')
     plda = pc.setup_plda(rank_f=config.plda_rank_f)
     plda = pc.train_plda(plda, tr_stat)
-    pc.save_plda(plda, 'plda_v1_1')
+    pc.save_plda(plda, 'plda_v1')
     #plda = pc.load_plda('plda/plda_v1.pickle')
 
 
