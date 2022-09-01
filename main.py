@@ -267,6 +267,8 @@ if __name__ == "__main__":
 
     positive_scores = []
     negative_scores = []
+    positive_scores_mask = np.zeros_like(scores_plda.scoremat)
+    negative_scores_mask = np.zeros_like(scores_plda.scoremat)
     for pair in open(config.data_folder_path + '/VoxCeleb/veri_test2.txt'):
         is_match = bool(int(pair.split(" ")[0].rstrip().split(".")[0].strip()))
         enrol_id = pair.split(" ")[1].rstrip().split(".")[0].strip()
@@ -275,21 +277,50 @@ if __name__ == "__main__":
         i = int(np.where(scores_plda.modelset == enrol_id)[0][0])
         j = int(np.where(scores_plda.segset == test_id)[0][0])
 
-        score = float(scores_plda.scoremat[i, j])
+        score = float(scores_plda.scoremat[i,j])
         if(is_match):
             positive_scores.append(score)
+            positive_scores_mask[i,j] = 1
         else:
             negative_scores.append(score)
-
-    #TODO make images for tensorboard
+            negative_scores_mask[i,j] = 1
 
     # Calculating EER
     eer, th = pc.EER(torch.tensor(positive_scores), torch.tensor(negative_scores))
-
     print('EER: ', eer)
     print('threshold: ', th)
 
-    print('DONE')
+    # Generating images for tensorboard
+    img = np.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
+    img[1] = np.array([scores_plda.scoremat*positive_scores_mask])
+    img[0] = np.array([scores_plda.scoremat*negative_scores_mask])
+    tb_logger.experiment.add_image('ground_truth', img, 0)
+
+    checked_values_map = positive_scores_mask + negative_scores_mask
+    positive_prediction_mask = np.zeros_like(scores_plda.scoremat)
+    negative_prediction_mask = np.zeros_like(scores_plda.scoremat)
+    for i, score in np.ndenumerate(scores_plda.scoremat):
+        if(score >= th):
+            positive_prediction_mask[i] = 1
+        else:
+            negative_prediction_mask[i] = 1
+    
+    img = np.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
+    img[1] = np.array([scores_plda.scoremat*positive_prediction_mask*checked_values_map])
+    img[0] = np.array([scores_plda.scoremat*negative_prediction_mask*checked_values_map])
+    tb_logger.experiment.add_image('prediction', img, 0)
+    
+    img = np.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
+    img[1] = np.array([positive_scores_mask*positive_prediction_mask])
+    img[0] = np.array([negative_scores_mask*negative_prediction_mask])
+    tb_logger.experiment.add_image('correct_prediction', img, 0)
+    
+    img = np.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
+    img[1] = np.array([positive_scores_mask*positive_prediction_mask])
+    img[0] = np.array([negative_scores_mask*negative_prediction_mask])
+    tb_logger.experiment.add_image('false_prediction', img, 0)
+
+    print('DONE') #TODO test if everything works and set up to extract x-vectors with gpu
 '''
 Notes:
 
