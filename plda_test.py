@@ -19,9 +19,9 @@ en_xv, en_label, te_xv, te_label = pc.split_en_te2(x_vec_test, x_label_test)
 
 # Generate x_vec stat objects
 print('generating x_vec stat objects')
-xvectors_stat = pc.get_train_x_vec(x_vec_train, x_label_train)
-en_sets, en_stat = pc.get_enroll_x_vec(en_xv)
-te_sets, te_stat = pc.get_test_x_vec(te_xv)
+xvectors_stat = pc.get_train_x_vec(x_vec_train, x_label_train, x_label_train)
+en_stat = pc.get_enroll_x_vec(en_xv, ['id'+str(i) for i in range(en_xv.shape[0])])
+te_stat = pc.get_test_x_vec(te_xv, ['id'+str(i) for i in range(te_xv.shape[0])])
 
 # Training plda (or load pretrained plda)
 print('training plda')
@@ -32,7 +32,7 @@ pc.save_plda(plda, 'plda_test')
 
 # Testing plda
 print('testing plda')
-scores_plda = pc.test_plda(plda, en_sets, en_stat, te_sets, te_stat) #TODO test if i can calculate the result myself by using the matrix in plda.F
+scores_plda = pc.test_plda(plda, en_stat, te_stat) #TODO test if i can calculate the result myself by using the matrix in plda.F
 mask = np.array(np.diag(np.diag(np.ones(scores_plda.scoremat.shape, dtype=np.int32))), dtype=bool)
 scores = scores_plda.scoremat[mask]
 
