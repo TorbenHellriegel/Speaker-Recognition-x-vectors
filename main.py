@@ -78,10 +78,10 @@ class XVectorModel(pl.LightningModule):
         return x_vec
 
     def training_step(self, batch, batch_index):
-        samples, labels = batch
+        samples, labels, id = batch
         outputs = self(samples.float())
         loss = F.cross_entropy(outputs, labels)
-        return {'loss': loss, 'train_preds': outputs, 'train_labels': labels}
+        return {'loss': loss, 'train_preds': outputs, 'train_labels': labels, 'train_id': id}
 
     def training_step_end(self, outputs):
         self.log('train_step_loss', outputs['loss'])
@@ -98,10 +98,10 @@ class XVectorModel(pl.LightningModule):
             self.logger.experiment.add_histogram(name, params, self.current_epoch)
 
     def validation_step(self, batch, batch_index):
-        samples, labels = batch
+        samples, labels, id = batch
         outputs = self(samples.float())
         loss = F.cross_entropy(outputs, labels)
-        return {'loss': loss, 'val_preds': outputs, 'val_labels': labels}
+        return {'loss': loss, 'val_preds': outputs, 'val_labels': labels, 'val_id': id}
 
     def validation_step_end(self, outputs):
         self.log('val_step_loss', outputs['loss'])
@@ -114,15 +114,15 @@ class XVectorModel(pl.LightningModule):
         todo=0
     
     def test_step(self, batch, batch_index):
-        samples, labels = batch
+        samples, labels, id = batch
         x_vecs = self.extract_x_vec(samples.float())
-        return [(x_vecs, labels)]
+        return [(x_vecs, labels, id)]
 
     def test_epoch_end(self, test_step_outputs):
         for batch_output in test_step_outputs:
-            for x_vec, label in batch_output:
-                for x, l in zip(x_vec, label):
-                    x_vector.append((l.cpu().numpy()), x.cpu().numpy())
+            for x_vec, label, id in batch_output:
+                for x, l, i in zip(x_vec, label, id):
+                    x_vector.append(i.cpu(), (int(l.cpu().numpy())), np.array(x.cpu().numpy(), dtype=np.float64))
                     # x_vectors.append(np.array(x.cpu().numpy(), dtype=np.float64))
                     # x_labels.append(int(l.cpu().numpy()))
         return test_step_outputs
@@ -186,27 +186,20 @@ if __name__ == "__main__":
 
     # Extract the x-vectors
     print('extracting x-vectors')
-    # x_vectors = []
-    # x_labels = []
 
     x_vector = []
     extract_mode = 'train'
     trainer.test(model)#, ckpt_path=config.checkpoint_path)
     x_vector = pd.DataFrame(x_vector)
     x_vector.to_csv('x_vectors/x_vector_train_v1.csv')
-
     # x_vec_train = np.array(x_vectors, dtype=np.float64)
     # x_label_train = np.array(x_labels, dtype=np.int32)
-    
-    # x_vectors = []
-    # x_labels = []
 
     x_vector = []
     extract_mode = 'test'
     trainer.test(model)#, ckpt_path=config.checkpoint_path)
     x_vector = pd.DataFrame(x_vector)
     x_vector.to_csv('x_vectors/x_vector_test_v1.csv')
-
     # x_vec_test = np.array(x_vectors, dtype=np.float64)
     # x_label_test = np.array(x_labels, dtype=np.int32)
     
@@ -214,27 +207,28 @@ if __name__ == "__main__":
 
     # Extracting the x-vectors, labels and id from the csv
     x_vectors_train = pd.read_csv('x_vectors/x_vector_train_v1.csv')
-    x_vec_train = x_vectors_train[0] #TODO
+    x_vec_train = x_vectors_train[0] #TODO how to read panda file
     x_label_train = x_vectors_train[0] #TODO
+    x_id_train = x_vectors_train[0] #TODO
     x_vectors_test = pd.read_csv('x_vectors/x_vector_test_v1.csv')
     x_vec_test = x_vectors_test[0] #TODO
     x_label_test = x_vectors_test[0] #TODO
     x_id_test = x_vectors_test[0] #TODO
 
-    # Split testing data into enroll and test data
-    print('splitting testing data into enroll and test data')
-    en_xv, en_label, te_xv, te_label = pc.split_en_te(x_vec_test, x_label_test, x_id_test)
+    # # Split testing data into enroll and test data
+    # print('splitting testing data into enroll and test data')
+    # en_xv, en_label, en_id, te_xv, te_label, te_id = pc.split_en_te(x_vec_test, x_label_test, x_id_test)
 
     # Generate x_vec stat objects
     print('generating x_vec stat objects')
-    xvectors_stat = pc.get_train_x_vec(x_vec_train, x_label_train)
-    en_sets, en_stat = pc.get_enroll_x_vec(en_xv)
-    te_sets, te_stat = pc.get_test_x_vec(te_xv)
+    tr_stat = pc.get_train_x_vec(x_vec_train, x_label_train, x_id_train)
+    en_stat = pc.get_enroll_x_vec(x_vec_test, x_id_test)
+    te_stat = pc.get_test_x_vec(x_vec_test, x_id_test)
 
     # Training plda (or load pretrained plda)
     print('training plda')
     plda = pc.setup_plda(rank_f=config.plda_rank_f)
-    plda = pc.train_plda(plda, xvectors_stat)
+    plda = pc.train_plda(plda, tr_stat)
     pc.save_plda(plda, 'plda_v1_1')
     #plda = pc.load_plda('plda/plda_v1.pickle')
 
@@ -242,32 +236,48 @@ if __name__ == "__main__":
 
     # Testing plda
     print('testing plda')
-    scores_plda = pc.test_plda(plda, en_sets, en_stat, te_sets, te_stat)
-    mask = np.array(np.diag(np.diag(np.ones(scores_plda.scoremat.shape, dtype=np.int32))), dtype=bool)
-    scores = scores_plda.scoremat[mask]
+    scores_plda = pc.test_plda(plda, en_stat, te_stat)
+    # mask = np.array(np.diag(np.diag(np.ones(scores_plda.scoremat.shape, dtype=np.int32))), dtype=bool)
+    # scores = scores_plda.scoremat[mask]
 
     # Dividing scores into positive and negative
+    # positive_scores = []
+    # negative_scores = []
+    # for en, te in zip(en_label, te_label):
+    #     if(en == te):
+    #         positive_scores.append(1)
+    #         negative_scores.append(0)
+    #     else:
+    #         positive_scores.append(0)
+    #         negative_scores.append(1)
+    # positive_scores_mask = np.array(positive_scores, dtype=bool)
+    # negative_scores_mask = np.array(negative_scores, dtype=bool)
+    # positive_scores = scores[positive_scores]
+    # negative_scores = scores[negative_scores]
+
     positive_scores = []
     negative_scores = []
-    for en, te in zip(en_label, te_label):
-        if(en == te):
-            positive_scores.append(1)
-            negative_scores.append(0)
+    for pair in open(config.data_folder_path + '/VoxCeleb/veri_test2.txt'):
+        is_match = bool(int(pair.split(" ")[0].rstrip().split(".")[0].strip()))
+        enrol_id = pair.split(" ")[1].rstrip().split(".")[0].strip()
+        test_id = pair.split(" ")[2].rstrip().split(".")[0].strip()
+
+        i = int(np.where(scores_plda.modelset == enrol_id)[0][0])
+        j = int(np.where(scores_plda.segset == test_id)[0][0])
+
+        score = float(scores_plda.scoremat[i, j])
+        if(is_match):
+            positive_scores.append(score)
         else:
-            positive_scores.append(0)
-            negative_scores.append(1)
-    positive_scores_mask = np.array(positive_scores, dtype=bool)
-    negative_scores_mask = np.array(negative_scores, dtype=bool)
-    positive_scores = scores[positive_scores]
-    negative_scores = scores[negative_scores]
+            negative_scores.append(score)
+
+    #TODO make images for tensorboard
 
     # Calculating EER
     eer, th = pc.EER(torch.tensor(positive_scores), torch.tensor(negative_scores))
 
     print('EER: ', eer)
     print('threshold: ', th)
-
-
 
     print('DONE')
 '''
