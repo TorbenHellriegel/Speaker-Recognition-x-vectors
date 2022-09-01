@@ -6,7 +6,7 @@ import torch
 from sklearn.model_selection import StratifiedKFold
 from speechbrain.processing.PLDA_LDA import *
 
-def split_en_te(x_vec_test, x_label_test, mean_same_speaker=False): #TODO use veri_test_2
+def split_en_te(x_vec_test, x_label_test, mean_same_speaker=False):
     skf = StratifiedKFold(n_splits=2, shuffle=True)
     enroll_index, test_index = [], []
     for eni, tei in skf.split(x_vec_test, x_label_test):
@@ -78,10 +78,10 @@ def split_en_te2(x_vec_test, x_label_test):
     te_xv = []
     te_label = []
 
-    #x_vec_test, x_label_test = sklearn.utils.shuffle(x_vec_test, x_label_test)###TODO
+    #x_vec_test, x_label_test = sklearn.utils.shuffle(x_vec_test, x_label_test)###TODO comment out and in to compare different results in plda_test
     en_xv = x_vec_test
     en_label = x_label_test
-    x_vec_test, x_label_test = sklearn.utils.shuffle(x_vec_test, x_label_test)###TODO
+    x_vec_test, x_label_test = sklearn.utils.shuffle(x_vec_test, x_label_test)###TODO comment out and in to compare different results in plda_test
     te_xv = x_vec_test
     te_label = x_label_test
 
@@ -102,15 +102,15 @@ def mean_same_speakers(test_xv, test_label):
     te_label = np.array(te_label, dtype=np.int32)
     return te_xv, te_label
 
-def get_train_x_vec(train_xv, train_label):
+def get_train_x_vec(train_xv, train_label, x_id_train):
     # Get number of train_utterances and their dimension
     N = train_xv.shape[0]
     print('N train utt:', N)
 
     # Define arrays neccessary for special stat object
-    md = ['md'+str(train_label[i]) for i in range(N)]
+    md = ['id'+str(train_label[i]) for i in range(N)]
     modelset = np.array(md, dtype="|O")
-    sg = ['sg'+str(i) for i in range(N)]
+    sg = [str(x_id_train[i]) for i in range(N)]
     segset = np.array(sg, dtype="|O")
     s = np.array([None] * N)
     stat0 = np.array([[1.0]]* N)
@@ -128,39 +128,39 @@ def train_plda(plda, xvectors_stat):
     plda.plda(xvectors_stat)
     return plda
 
-def get_enroll_x_vec(en_xv):
+def get_enroll_x_vec(en_xv, en_id):
     # Get number of train_utterances and their dimension
     en_N = en_xv.shape[0]
     print('N enroll utt:', en_N)
 
     # Define arrays neccessary for special stat object
-    en_sgs = ['en'+str(i) for i in range(en_N)]
+    en_sgs = [str(en_id[i]) for i in range(en_N)]
     en_sets = np.array(en_sgs, dtype="|O")
     en_s = np.array([None] * en_N)
     en_stat0 = np.array([[1.0]]* en_N)
 
     # Define special stat object
     en_stat = StatObject_SB(modelset=en_sets, segset=en_sets, start=en_s, stop=en_s, stat0=en_stat0, stat1=en_xv)
-    return en_sets, en_stat
+    return en_stat
 
-def get_test_x_vec(te_xv):
+def get_test_x_vec(te_xv, te_id):
     # Get number of train_utterances and their dimension
     te_N = te_xv.shape[0]
     print('N test utt:', te_N)
 
     # Define arrays neccessary for special stat object
-    te_sgs = ['te'+str(i) for i in range(te_N)]
+    te_sgs = [str(te_id[i]) for i in range(te_N)]
     te_sets = np.array(te_sgs, dtype="|O")
     te_s = np.array([None] * te_N)
     te_stat0 = np.array([[1.0]]* te_N)
 
     # Define special stat object
     te_stat = StatObject_SB(modelset=te_sets, segset=te_sets, start=te_s, stop=te_s, stat0=te_stat0, stat1=te_xv)
-    return te_sets, te_stat
+    return te_stat
 
-def test_plda(plda, en_sets, en_stat, te_sets, te_stat):
+def test_plda(plda, en_stat, te_stat):
     # Define special object for plda scoring
-    ndx = Ndx(models=en_sets, testsegs=te_sets)
+    ndx = Ndx(models=en_stat.modelset, testsegs=te_stat.modelset)
 
     # PLDA Scoring
     scores_plda = fast_PLDA_scoring(en_stat, te_stat, ndx, plda.mean, plda.F, plda.Sigma, p_known=0.0)
