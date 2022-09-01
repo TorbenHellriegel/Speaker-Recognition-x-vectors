@@ -39,17 +39,20 @@ scores = scores_plda.scoremat[mask]
 # Dividing scores into positive and negative
 positive_scores = []
 negative_scores = []
-for en, te in zip(en_label, te_label):
-    if(en == te):
-        positive_scores.append(1)
-        negative_scores.append(0)
-    else:
-        positive_scores.append(0)
-        negative_scores.append(1)
+for en in en_label:
+    for te in te_label:
+        if(en == te):
+            positive_scores.append(1)
+            negative_scores.append(0)
+        else:
+            positive_scores.append(0)
+            negative_scores.append(1)
 positive_scores_mask = np.array(positive_scores, dtype=bool)
 negative_scores_mask = np.array(negative_scores, dtype=bool)
-positive_scores = scores[positive_scores_mask]
-negative_scores = scores[negative_scores_mask]
+positive_scores_mask = np.reshape(positive_scores_mask, (50,50))
+negative_scores_mask = np.reshape(negative_scores_mask, (50,50))
+positive_scores = scores_plda.scoremat[positive_scores_mask]
+negative_scores = scores_plda.scoremat[negative_scores_mask]
 
 # Calculating EER
 eer, th = pc.EER(torch.tensor(positive_scores), torch.tensor(negative_scores))
@@ -174,19 +177,28 @@ if(True):
     from torch.utils.tensorboard import SummaryWriter
     
     writer = SummaryWriter(log_dir="testlogs/lightning_logs/images/0")
+    
+    img = np.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
+    img[1] = np.array([scores_plda.scoremat*positive_scores_mask])
+    img[0] = np.array([scores_plda.scoremat*negative_scores_mask])
+    writer.add_image('ground_truth', img, 0)
 
     new_mask = np.zeros_like(scores_plda.scoremat)
     new_mask_inv = np.zeros_like(scores_plda.scoremat)
-    for i, score in enumerate(positive_scores_mask):
-        if(score == 1):
-            new_mask[i,i] = 1
+    for i, score in np.ndenumerate(scores_plda.scoremat):
+        if(score >= th):
+            new_mask[i] = 1
         else:
-            new_mask_inv[i,i] = 1
+            new_mask_inv[i] = 1
     
     img = np.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
-    img[2] = np.array([scores_plda.scoremat*~mask])
     img[1] = np.array([scores_plda.scoremat*new_mask])
     img[0] = np.array([scores_plda.scoremat*new_mask_inv])
-    writer.add_image('new_masked_scores', img, 0)
+    writer.add_image('prediction', img, 0)
+    
+    img = np.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
+    img[1] = np.array([positive_scores_mask*new_mask])
+    img[0] = np.array([negative_scores_mask*new_mask_inv])
+    writer.add_image('correct_prediction', img, 0)
 
     writer.close()
