@@ -1,6 +1,6 @@
 import numpy as np
+import pandas as pd
 import pytorch_lightning as pl
-import sklearn
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -122,8 +122,9 @@ class XVectorModel(pl.LightningModule):
         for batch_output in test_step_outputs:
             for x_vec, label in batch_output:
                 for x, l in zip(x_vec, label):
-                    x_vectors.append(np.array(x.cpu().numpy(), dtype=np.float64))
-                    x_labels.append(int(l.cpu().numpy()))
+                    x_vector.append((l.cpu().numpy()), x.cpu().numpy())
+                    # x_vectors.append(np.array(x.cpu().numpy(), dtype=np.float64))
+                    # x_labels.append(int(l.cpu().numpy()))
         return test_step_outputs
     
     def configure_optimizers(self):
@@ -148,51 +149,81 @@ class XVectorModel(pl.LightningModule):
             test_data_loader = DataLoader(dataset=self.dataset, batch_size=self.batch_size, num_workers=4, shuffle=False)
         return test_data_loader
 
-if __name__ == "__main__": #TODO ready to train TODO use command TODO nohup python -u main.py &> out/train_x_vec_v1_2.out &
+if __name__ == "__main__":
     # Define model and trainer
     print('setting up model and trainer parameters')
-    config = Config(num_epochs=15) #adjust batch size, epoch, etc. here
+    config = Config(num_epochs=15, checkpoint_path='lightning_logs/x_vector_v1_2/checkpoints/last.ckpt') #adjust batch size, epoch, etc. here
 
     tb_logger = pl_loggers.TensorBoardLogger(save_dir="./")
     early_stopping_callback = EarlyStopping(monitor="val_step_loss", mode="min")
     checkpoint_callback = ModelCheckpoint(monitor='val_step_loss', save_top_k=10, save_last=True, verbose=True)
 
-    # model = XVectorModel(input_size=config.input_size, hidden_size=config.hidden_size, num_classes=config.num_classes,
-    #                     x_vector_size=config.x_vector_size, x_vec_extract_layer=config.x_vec_extract_layer,
-    #                     batch_size=config.batch_size, learning_rate=config.learning_rate, batch_norm=config.batch_norm, dropout_p=config.dropout_p,
-    #                     augmentations_per_sample=config.augmentations_per_sample, data_folder_path=config.data_folder_path)
-    model = XVectorModel.load_from_checkpoint("lightning_logs/x_vector_v1_1/checkpoints/last.ckpt")
+    if(config.checkpoint_path == 'none'):
+        model = XVectorModel(input_size=config.input_size, hidden_size=config.hidden_size, num_classes=config.num_classes,
+                            x_vector_size=config.x_vector_size, x_vec_extract_layer=config.x_vec_extract_layer,
+                            batch_size=config.batch_size, learning_rate=config.learning_rate, batch_norm=config.batch_norm, dropout_p=config.dropout_p,
+                            augmentations_per_sample=config.augmentations_per_sample, data_folder_path=config.data_folder_path)
+    else:
+        model = XVectorModel.load_from_checkpoint(config.checkpoint_path)
     model.dataset.init_samples_and_labels()
 
     trainer = pl.Trainer(callbacks=[early_stopping_callback, checkpoint_callback],
                         logger=tb_logger, log_every_n_steps=1,
-                        accelerator='gpu', devices=[0],# strategy='ddp',
+                        accelerator='cpu',# devices=[0],# strategy='ddp',
                         max_epochs=config.num_epochs)
                         #small test adjust options: fast_dev_run=True, limit_train_batches=0.001, limit_val_batches=0.01, limit_test_batches=0.01
 
+
+
     # Train the x-vector model
     print('training x-vector model')
-    trainer.fit(model, ckpt_path='lightning_logs/x_vector_v1_1/checkpoints/last.ckpt')
+    if(config.checkpoint_path == 'none'):
+        trainer.fit(model)
+    else:
+        trainer.fit(model, ckpt_path=config.checkpoint_path)
     
+
+
     # Extract the x-vectors
     print('extracting x-vectors')
-    x_vectors = []
-    x_labels = []
+    # x_vectors = []
+    # x_labels = []
+
+    x_vector = []
     extract_mode = 'train'
-    '''trainer.test(model)
-    x_vec_train = np.array(x_vectors, dtype=np.float64)
-    x_label_train = np.array(x_labels, dtype=np.int32)
+    trainer.test(model)#, ckpt_path=config.checkpoint_path)
+    x_vector = pd.DataFrame(x_vector)
+    x_vector.to_csv('x_vectors/x_vector_train_v1.csv')
+
+    # x_vec_train = np.array(x_vectors, dtype=np.float64)
+    # x_label_train = np.array(x_labels, dtype=np.int32)
     
-    x_vectors = []
-    x_labels = []
+    # x_vectors = []
+    # x_labels = []
+
+    x_vector = []
     extract_mode = 'test'
-    trainer.test(model)
-    x_vec_test = np.array(x_vectors, dtype=np.float64)
-    x_label_test = np.array(x_labels, dtype=np.int32)
+    trainer.test(model)#, ckpt_path=config.checkpoint_path)
+    x_vector = pd.DataFrame(x_vector)
+    x_vector.to_csv('x_vectors/x_vector_test_v1.csv')
+
+    # x_vec_test = np.array(x_vectors, dtype=np.float64)
+    # x_label_test = np.array(x_labels, dtype=np.int32)
     
+
+
+    # Extracting the x-vectors, labels and id from the csv
+    x_vectors_train = pd.read_csv('x_vectors/x_vector_train_v1.csv')
+    x_vec_train = x_vectors_train[0] #TODO
+    x_label_train = x_vectors_train[0] #TODO
+    x_vectors_test = pd.read_csv('x_vectors/x_vector_test_v1.csv')
+    x_vec_test = x_vectors_test[0] #TODO
+    x_label_test = x_vectors_test[0] #TODO
+    x_id_test = x_vectors_test[0] #TODO
+
     # Split testing data into enroll and test data
     print('splitting testing data into enroll and test data')
-    en_xv, en_label, te_xv, te_label = pc.split_en_te(x_vec_test, x_label_test)
+    en_xv, en_label, te_xv, te_label = pc.split_en_te(x_vec_test, x_label_test, x_id_test)
 
     # Generate x_vec stat objects
     print('generating x_vec stat objects')
@@ -206,6 +237,8 @@ if __name__ == "__main__": #TODO ready to train TODO use command TODO nohup pyth
     plda = pc.train_plda(plda, xvectors_stat)
     pc.save_plda(plda, 'plda_v1_1')
     #plda = pc.load_plda('plda/plda_v1.pickle')
+
+
 
     # Testing plda
     print('testing plda')
@@ -232,7 +265,9 @@ if __name__ == "__main__": #TODO ready to train TODO use command TODO nohup pyth
     eer, th = pc.EER(torch.tensor(positive_scores), torch.tensor(negative_scores))
 
     print('EER: ', eer)
-    print('threshold: ', th)'''
+    print('threshold: ', th)
+
+
 
     print('DONE')
 '''

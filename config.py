@@ -7,12 +7,12 @@ class Config:
                 x_vector_size=512,
                 x_vec_extract_layer=6,
                 learning_rate=0.001,
-                num_epochs=6,
+                num_epochs=5,
                 batch_norm=True,
                 dropout_p=0.0,
                 augmentations_per_sample=2,
                 plda_rank_f=150,
-                model_path='./trained_models/x_vector_model.pth',
+                checkpoint_path='none',
                 data_folder_path='../../../../../../../../../data/7hellrie'):
                 
         self.batch_size = batch_size
@@ -27,5 +27,5 @@ class Config:
         self.dropout_p = dropout_p
         self.augmentations_per_sample = augmentations_per_sample
         self.plda_rank_f = plda_rank_f
-        self.model_path = model_path
+        checkpoint_path = checkpoint_path
         self.data_folder_path = data_folder_path
