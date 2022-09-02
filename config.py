@@ -27,5 +27,5 @@ class Config:
         self.dropout_p = dropout_p
         self.augmentations_per_sample = augmentations_per_sample
         self.plda_rank_f = plda_rank_f
-        checkpoint_path = checkpoint_path
+        self.checkpoint_path = checkpoint_path
         self.data_folder_path = data_folder_path

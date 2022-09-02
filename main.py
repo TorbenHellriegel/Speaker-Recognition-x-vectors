@@ -1,3 +1,4 @@
+import random
 import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
@@ -122,7 +123,7 @@ class XVectorModel(pl.LightningModule):
         for batch_output in test_step_outputs:
             for x_vec, label, id in batch_output:
                 for x, l, i in zip(x_vec, label, id):
-                    x_vector.append((i.cpu(), int(l.cpu().numpy()), np.array(x.cpu().numpy(), dtype=np.float64)))
+                    x_vector.append((i, int(l.cpu().numpy()), np.array(x.cpu().numpy(), dtype=np.float64)))
                     # x_vectors.append(np.array(x.cpu().numpy(), dtype=np.float64))
                     # x_labels.append(int(l.cpu().numpy()))
         return test_step_outputs
@@ -152,9 +153,9 @@ class XVectorModel(pl.LightningModule):
 if __name__ == "__main__":
     # Define model and trainer
     print('setting up model and trainer parameters')
-    config = Config(num_epochs=15, checkpoint_path='lightning_logs/x_vector_v1_2/checkpoints/last.ckpt') #adjust batch size, epoch, etc. here
+    config = Config(num_epochs=1, batch_size=16)#, checkpoint_path='lightning_logs/x_vector_v1_2/checkpoints/last.ckpt') #adjust batch size, epoch, etc. here
 
-    tb_logger = pl_loggers.TensorBoardLogger(save_dir="./")
+    tb_logger = pl_loggers.TensorBoardLogger(save_dir="testlogs/")
     early_stopping_callback = EarlyStopping(monitor="val_step_loss", mode="min")
     checkpoint_callback = ModelCheckpoint(monitor='val_step_loss', save_top_k=10, save_last=True, verbose=True)
 
@@ -170,22 +171,27 @@ if __name__ == "__main__":
     trainer = pl.Trainer(callbacks=[early_stopping_callback, checkpoint_callback],
                         logger=tb_logger, log_every_n_steps=1,
                         accelerator='cpu',# devices=[0],# strategy='ddp',
-                        max_epochs=config.num_epochs)
-                        #small test adjust options: fast_dev_run=True, limit_train_batches=0.001, limit_val_batches=0.01, limit_test_batches=0.01
+                        max_epochs=config.num_epochs, limit_train_batches=0.0001, limit_val_batches=0.001, limit_test_batches=0.1)
+                        #small test adjust options: fast_dev_run=True, limit_train_batches=0.0001, limit_val_batches=0.001, limit_test_batches=0.002
 
 
 
     # Train the x-vector model
-    print('training x-vector model')
+    '''print('training x-vector model')
     if(config.checkpoint_path == 'none'):
         trainer.fit(model)
     else:
-        trainer.fit(model, ckpt_path=config.checkpoint_path)
+        trainer.fit(model, ckpt_path=config.checkpoint_path)'''
     
+
+    
+    extract_mode = 'train'
+    x_vector = []
+
 
 
     # Extract the x-vectors
-    print('extracting x-vectors')
+    '''print('extracting x-vectors')
 
     x_vector = []
     extract_mode = 'train'
@@ -201,29 +207,20 @@ if __name__ == "__main__":
     x_vector = pd.DataFrame(x_vector)
     x_vector.to_csv('x_vectors/x_vector_test_v1.csv')
     # x_vec_test = np.array(x_vectors, dtype=np.float64)
-    # x_label_test = np.array(x_labels, dtype=np.int32)
+    # x_label_test = np.array(x_labels, dtype=np.int32)'''
     
 
 
     # Extracting the x-vectors, labels and id from the csv
-    x_vectors_train = np.genfromtxt('x_vectors/x_vector_train_v1.csv', delimiter=',', dtype=np.unicode)[1:]
-    x_id_train = []
-    x_label_train = []
-    x_vec_train = []
-    for x in x_vectors_train:
-        _, x_id, x_label, x_vec = x
-        x_id_train.append(x_id)
-        x_label_train.append(int(x_label))
-        x_vec_train.append(np.array(x_vec[1:-1].split(), dtype=np.float64))
-    x_vectors_test = np.genfromtxt('x_vectors/x_vector_test_v1.csv', delimiter=',', dtype=np.unicode)[1:]
-    x_id_test = []
-    x_label_test = []
-    x_vec_test = []
-    for x in x_vectors_test:
-        _, x_id, x_label, x_vec = x
-        x_id_test.append(x_id)
-        x_label_test.append(int(x_label))
-        x_vec_test.append(np.array(x_vec[1:-1].split(), dtype=np.float64))
+    x_vectors_train = pd.read_csv('x_vectors/x_vector_train_v1.csv')
+    x_id_train = np.array(x_vectors_train.iloc[:, 1])
+    x_label_train = np.array(x_vectors_train.iloc[:, 2], dtype=int)
+    x_vec_train = np.array([np.array(x_vec[1:-1].split(), dtype=np.float64) for x_vec in x_vectors_train.iloc[:, 3]])
+    
+    x_vectors_train = pd.read_csv('x_vectors/x_vector_test_v1.csv')
+    x_id_test = np.array(x_vectors_train.iloc[:, 1])
+    x_label_test = np.array(x_vectors_train.iloc[:, 2], dtype=int)
+    x_vec_test = np.array([np.array(x_vec[1:-1].split(), dtype=np.float64) for x_vec in x_vectors_train.iloc[:, 3]])
 
     # # Split testing data into enroll and test data
     # print('splitting testing data into enroll and test data')
@@ -269,32 +266,59 @@ if __name__ == "__main__":
     negative_scores = []
     positive_scores_mask = np.zeros_like(scores_plda.scoremat)
     negative_scores_mask = np.zeros_like(scores_plda.scoremat)
+    '''num_failed_matches = 0
     for pair in open(config.data_folder_path + '/VoxCeleb/veri_test2.txt'):
         is_match = bool(int(pair.split(" ")[0].rstrip().split(".")[0].strip()))
         enrol_id = pair.split(" ")[1].rstrip().split(".")[0].strip()
         test_id = pair.split(" ")[2].rstrip().split(".")[0].strip()
 
-        i = int(np.where(scores_plda.modelset == enrol_id)[0][0])
-        j = int(np.where(scores_plda.segset == test_id)[0][0])
-
-        score = float(scores_plda.scoremat[i,j])
-        if(is_match):
-            positive_scores.append(score)
-            positive_scores_mask[i,j] = 1
+        try:
+            i = int(np.where(scores_plda.modelset == enrol_id)[0][0])
+            j = int(np.where(scores_plda.segset == test_id)[0][0])
+        except:
+            num_failed_matches += 1
         else:
-            negative_scores.append(score)
-            negative_scores_mask[i,j] = 1
+            score = float(scores_plda.scoremat[i,j])
+            if(is_match):
+                positive_scores.append(score)
+                positive_scores_mask[i,j] = 1
+            else:
+                negative_scores.append(score)
+                negative_scores_mask[i,j] = 1
+    print('num_failed_matches', num_failed_matches)'''
+
+    for i, en in enumerate(en_stat.modelset):
+        for j, te in enumerate(te_stat.modelset):
+            rand = random.randint(1, 60)
+            if(rand == 7):
+                score = float(scores_plda.scoremat[i,j])
+                if(en.rsplit('/')[0] == te.rsplit('/')[0]):
+                    positive_scores.append(score)
+                    positive_scores_mask[i,j] = 1
+                else:
+                    negative_scores.append(score)
+                    negative_scores_mask[i,j] = 1
 
     # Calculating EER
+    print('calculating EER') #TODO TODO TODO WHY THE FUCK DOES IT JUST STOP IN EER
     eer, th = pc.EER(torch.tensor(positive_scores), torch.tensor(negative_scores))
     print('EER: ', eer)
     print('threshold: ', th)
 
     # Generating images for tensorboard
     img = np.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
+    img[2] = np.array([scores_plda.scoremat])
+    tb_logger.experiment.add_image('score_matrix', img, 0)
+
+    img = np.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
+    img[1] = np.array([positive_scores_mask])
+    img[0] = np.array([negative_scores_mask])
+    tb_logger.experiment.add_image('ground_truth', img, 0)
+
+    img = np.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
     img[1] = np.array([scores_plda.scoremat*positive_scores_mask])
     img[0] = np.array([scores_plda.scoremat*negative_scores_mask])
-    tb_logger.experiment.add_image('ground_truth', img, 0)
+    tb_logger.experiment.add_image('ground_truth_scores', img, 0)
 
     checked_values_map = positive_scores_mask + negative_scores_mask
     positive_prediction_mask = np.zeros_like(scores_plda.scoremat)
@@ -306,9 +330,14 @@ if __name__ == "__main__":
             negative_prediction_mask[i] = 1
     
     img = np.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
+    img[1] = np.array([positive_prediction_mask*checked_values_map])
+    img[0] = np.array([negative_prediction_mask*checked_values_map])
+    tb_logger.experiment.add_image('prediction', img, 0)
+    
+    img = np.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
     img[1] = np.array([scores_plda.scoremat*positive_prediction_mask*checked_values_map])
     img[0] = np.array([scores_plda.scoremat*negative_prediction_mask*checked_values_map])
-    tb_logger.experiment.add_image('prediction', img, 0)
+    tb_logger.experiment.add_image('prediction_scores', img, 0)
     
     img = np.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
     img[1] = np.array([positive_scores_mask*positive_prediction_mask])
@@ -316,11 +345,13 @@ if __name__ == "__main__":
     tb_logger.experiment.add_image('correct_prediction', img, 0)
     
     img = np.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
-    img[1] = np.array([positive_scores_mask*positive_prediction_mask])
-    img[0] = np.array([negative_scores_mask*negative_prediction_mask])
+    img[1] = np.array([positive_scores_mask*negative_prediction_mask])
+    img[0] = np.array([negative_scores_mask*positive_prediction_mask])
     tb_logger.experiment.add_image('false_prediction', img, 0)
 
     print('DONE') #TODO test if everything works and set up to extract x-vectors with gpu
+    print('DONE')
+    print('DONE')
 '''
 Notes:
 

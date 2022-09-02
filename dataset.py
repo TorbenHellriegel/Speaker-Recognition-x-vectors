@@ -103,8 +103,11 @@ class Dataset(Dataset):
         # Augment the sample with noise and/or reverbaraition
         augmented_sample = self.augment_data(sample, augmentation)
         augmented_sample = mfcc(augmented_sample, self.sampling_rate, numcep=self.mfcc_numcep, nfilt=self.mfcc_nfilt, nfft=self.mfcc_nfft)#TODO figure out how mfcc works
+
+        label = self.unique_labels.index(self.labels[index])
+        id = '/'.join(sample_path.rsplit('/')[-3:])
         
-        return torch.from_numpy(augmented_sample), self.unique_labels.index(self.labels[index]), sample_path
+        return torch.from_numpy(augmented_sample), label, id
 
     def __len__(self):
         return self.n_samples
