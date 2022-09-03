@@ -150,10 +150,10 @@ class XVectorModel(pl.LightningModule):
 
 if __name__ == "__main__":
     # Set which parts of the code to run
-    train_x_vector_model = True
+    train_x_vector_model = False
     extract_x_vectors = True
-    train_plda = True
-    test_plda = True
+    train_plda = False
+    test_plda = False
 
     # Define model and trainer
     print('setting up model and trainer parameters')
