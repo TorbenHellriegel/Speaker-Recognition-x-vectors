@@ -1,7 +1,7 @@
-import random
 import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
+import sklearn
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -124,8 +124,6 @@ class XVectorModel(pl.LightningModule):
             for x_vec, label, id in batch_output:
                 for x, l, i in zip(x_vec, label, id):
                     x_vector.append((i, int(l.cpu().numpy()), np.array(x.cpu().numpy(), dtype=np.float64)))
-                    # x_vectors.append(np.array(x.cpu().numpy(), dtype=np.float64))
-                    # x_labels.append(int(l.cpu().numpy()))
         return test_step_outputs
     
     def configure_optimizers(self):
@@ -151,11 +149,17 @@ class XVectorModel(pl.LightningModule):
         return test_data_loader
 
 if __name__ == "__main__":
+    # Set which parts of the code to run
+    train_x_vector_model = True
+    extract_x_vectors = True
+    train_plda = True
+    test_plda = True
+
     # Define model and trainer
     print('setting up model and trainer parameters')
-    config = Config(num_epochs=1, batch_size=16)#, checkpoint_path='lightning_logs/x_vector_v1_2/checkpoints/last.ckpt') #adjust batch size, epoch, etc. here
+    config = Config(num_epochs=15, checkpoint_path='lightning_logs/x_vector_v1_2/checkpoints/last.ckpt') #adjust batch size, epoch, etc. here
 
-    tb_logger = pl_loggers.TensorBoardLogger(save_dir="testlogs/")
+    tb_logger = pl_loggers.TensorBoardLogger(save_dir="./")
     early_stopping_callback = EarlyStopping(monitor="val_step_loss", mode="min")
     checkpoint_callback = ModelCheckpoint(monitor='val_step_loss', save_top_k=10, save_last=True, verbose=True)
 
@@ -170,188 +174,173 @@ if __name__ == "__main__":
 
     trainer = pl.Trainer(callbacks=[early_stopping_callback, checkpoint_callback],
                         logger=tb_logger, log_every_n_steps=1,
-                        accelerator='cpu',# devices=[0],# strategy='ddp',
-                        max_epochs=config.num_epochs, limit_train_batches=0.0001, limit_val_batches=0.001, limit_test_batches=0.1)
+                        accelerator='gpu', devices=[0],# strategy='ddp',
+                        max_epochs=config.num_epochs)
                         #small test adjust options: fast_dev_run=True, limit_train_batches=0.0001, limit_val_batches=0.001, limit_test_batches=0.002
 
 
 
     # Train the x-vector model
-    '''print('training x-vector model')
-    if(config.checkpoint_path == 'none'):
-        trainer.fit(model)
-    else:
-        trainer.fit(model, ckpt_path=config.checkpoint_path)'''
-    
-
-    
-    extract_mode = 'train'
-    x_vector = []
+    if(train_x_vector_model):
+        print('training x-vector model')
+        if(config.checkpoint_path == 'none'):
+            trainer.fit(model)
+        else:
+            trainer.fit(model, ckpt_path=config.checkpoint_path)
 
 
 
     # Extract the x-vectors
-    '''print('extracting x-vectors')
+    if(extract_x_vectors):
+        print('extracting x-vectors')
+        x_vector = []
+        extract_mode = 'train'
+        if(train_x_vector_model):
+            trainer.test(model)
+            x_vector = pd.DataFrame(x_vector)
+            x_vector.to_csv('x_vectors/x_vector_train_v1.csv')
+        elif(config.checkpoint_path != 'none'):
+            trainer.test(model, ckpt_path=config.checkpoint_path)
+            x_vector = pd.DataFrame(x_vector)
+            x_vector.to_csv('x_vectors/x_vector_train_v1.csv')
+        else:
+            print('could not extract train x-vectors')
 
-    x_vector = []
-    extract_mode = 'train'
-    trainer.test(model)#, ckpt_path=config.checkpoint_path)
-    x_vector = pd.DataFrame(x_vector)
-    x_vector.to_csv('x_vectors/x_vector_train_v1.csv')
-    # x_vec_train = np.array(x_vectors, dtype=np.float64)
-    # x_label_train = np.array(x_labels, dtype=np.int32)
-
-    x_vector = []
-    extract_mode = 'test'
-    trainer.test(model)#, ckpt_path=config.checkpoint_path)
-    x_vector = pd.DataFrame(x_vector)
-    x_vector.to_csv('x_vectors/x_vector_test_v1.csv')
-    # x_vec_test = np.array(x_vectors, dtype=np.float64)
-    # x_label_test = np.array(x_labels, dtype=np.int32)'''
+        x_vector = []
+        extract_mode = 'test'
+        if(train_x_vector_model):
+            trainer.test(model)
+            x_vector = pd.DataFrame(x_vector)
+            x_vector.to_csv('x_vectors/x_vector_test_v1.csv')
+        elif(config.checkpoint_path != 'none'):
+            trainer.test(model, ckpt_path=config.checkpoint_path)
+            x_vector = pd.DataFrame(x_vector)
+            x_vector.to_csv('x_vectors/x_vector_test_v1.csv')
+        else:
+            print('could not extract test x-vectors')
     
 
 
-    # Extracting the x-vectors, labels and id from the csv
-    x_vectors_train = pd.read_csv('x_vectors/x_vector_train_v1.csv')
-    x_id_train = np.array(x_vectors_train.iloc[:, 1])
-    x_label_train = np.array(x_vectors_train.iloc[:, 2], dtype=int)
-    x_vec_train = np.array([np.array(x_vec[1:-1].split(), dtype=np.float64) for x_vec in x_vectors_train.iloc[:, 3]])
-    
-    x_vectors_train = pd.read_csv('x_vectors/x_vector_test_v1.csv')
-    x_id_test = np.array(x_vectors_train.iloc[:, 1])
-    x_label_test = np.array(x_vectors_train.iloc[:, 2], dtype=int)
-    x_vec_test = np.array([np.array(x_vec[1:-1].split(), dtype=np.float64) for x_vec in x_vectors_train.iloc[:, 3]])
+    if(train_plda):
+        # Extracting the x-vectors, labels and id from the csv
+        x_vectors_train = pd.read_csv('x_vectors/x_vector_train_v1.csv')
+        x_id_train = np.array(x_vectors_train.iloc[:, 1])
+        x_label_train = np.array(x_vectors_train.iloc[:, 2], dtype=int)
+        x_vec_train = np.array([np.array(x_vec[1:-1].split(), dtype=np.float64) for x_vec in x_vectors_train.iloc[:, 3]])
+        
+        x_vectors_train = pd.read_csv('x_vectors/x_vector_test_v1.csv')
+        x_id_test = np.array(x_vectors_train.iloc[:, 1])
+        x_label_test = np.array(x_vectors_train.iloc[:, 2], dtype=int)
+        x_vec_test = np.array([np.array(x_vec[1:-1].split(), dtype=np.float64) for x_vec in x_vectors_train.iloc[:, 3]])
 
-    # # Split testing data into enroll and test data
-    # print('splitting testing data into enroll and test data')
-    # en_xv, en_label, en_id, te_xv, te_label, te_id = pc.split_en_te(x_vec_test, x_label_test, x_id_test)
+        # Generate x_vec stat objects
+        print('generating x_vec stat objects')
+        x_vec_train, x_label_train, x_id_train = sklearn.utils.shuffle(x_vec_train, x_label_train, x_id_train)###TODO comment out and in to compare different results in plda_test
+        tr_stat = pc.get_train_x_vec(x_vec_train, x_label_train, x_id_train)
+        #x_vec_test, x_id_test = sklearn.utils.shuffle(x_vec_test, x_id_test)###TODO comment out and in to compare different results in plda_test
+        en_stat = pc.get_enroll_x_vec(x_vec_test, x_id_test)
+        #x_vec_test, x_id_test = sklearn.utils.shuffle(x_vec_test, x_id_test)###TODO comment out and in to compare different results in plda_test
+        te_stat = pc.get_test_x_vec(x_vec_test, x_id_test)
 
-    # Generate x_vec stat objects
-    print('generating x_vec stat objects')
-    tr_stat = pc.get_train_x_vec(x_vec_train, x_label_train, x_id_train)
-    en_stat = pc.get_enroll_x_vec(x_vec_test, x_id_test)
-    te_stat = pc.get_test_x_vec(x_vec_test, x_id_test)
-
-    # Training plda (or load pretrained plda)
-    print('training plda')
-    plda = pc.setup_plda(rank_f=config.plda_rank_f)
-    plda = pc.train_plda(plda, tr_stat)
-    pc.save_plda(plda, 'plda_v1')
-    #plda = pc.load_plda('plda/plda_v1.pickle')
+        # Training plda (or load pretrained plda)
+        print('training plda')
+        plda = pc.setup_plda(rank_f=config.plda_rank_f)
+        plda = pc.train_plda(plda, tr_stat)
+        pc.save_plda(plda, 'plda_v1')
 
 
 
     # Testing plda
-    print('testing plda')
-    scores_plda = pc.test_plda(plda, en_stat, te_stat)
-    # mask = np.array(np.diag(np.diag(np.ones(scores_plda.scoremat.shape, dtype=np.int32))), dtype=bool)
-    # scores = scores_plda.scoremat[mask]
+    if(test_plda):
+        print('testing plda')
+        if(not train_plda):
+            plda = pc.load_plda('plda/plda_v1.pickle')
+        scores_plda = pc.test_plda(plda, en_stat, te_stat)
 
-    # Dividing scores into positive and negative
-    # positive_scores = []
-    # negative_scores = []
-    # for en, te in zip(en_label, te_label):
-    #     if(en == te):
-    #         positive_scores.append(1)
-    #         negative_scores.append(0)
-    #     else:
-    #         positive_scores.append(0)
-    #         negative_scores.append(1)
-    # positive_scores_mask = np.array(positive_scores, dtype=bool)
-    # negative_scores_mask = np.array(negative_scores, dtype=bool)
-    # positive_scores = scores[positive_scores]
-    # negative_scores = scores[negative_scores]
+        positive_scores = []
+        negative_scores = []
+        positive_scores_mask = np.zeros_like(scores_plda.scoremat)
+        negative_scores_mask = np.zeros_like(scores_plda.scoremat)
+        
+        num_failed_matches = 0
+        total_matches = 0
+        for pair in open(config.data_folder_path + '/VoxCeleb/veri_test2.txt'):
+            is_match = bool(int(pair.split(" ")[0].rstrip().split(".")[0].strip()))
+            enrol_id = pair.split(" ")[1].rstrip().split(".")[0].strip()
+            test_id = pair.split(" ")[2].rstrip().split(".")[0].strip()
 
-    positive_scores = []
-    negative_scores = []
-    positive_scores_mask = np.zeros_like(scores_plda.scoremat)
-    negative_scores_mask = np.zeros_like(scores_plda.scoremat)
-    '''num_failed_matches = 0
-    for pair in open(config.data_folder_path + '/VoxCeleb/veri_test2.txt'):
-        is_match = bool(int(pair.split(" ")[0].rstrip().split(".")[0].strip()))
-        enrol_id = pair.split(" ")[1].rstrip().split(".")[0].strip()
-        test_id = pair.split(" ")[2].rstrip().split(".")[0].strip()
-
-        try:
-            i = int(np.where(scores_plda.modelset == enrol_id)[0][0])
-            j = int(np.where(scores_plda.segset == test_id)[0][0])
-        except:
-            num_failed_matches += 1
-        else:
-            score = float(scores_plda.scoremat[i,j])
-            if(is_match):
-                positive_scores.append(score)
-                positive_scores_mask[i,j] = 1
+            try:
+                i = int(np.where(scores_plda.modelset == enrol_id)[0][0])
+                j = int(np.where(scores_plda.segset == test_id)[0][0])
+                total_matches += 1
+            except:
+                num_failed_matches += 1
             else:
-                negative_scores.append(score)
-                negative_scores_mask[i,j] = 1
-    print('num_failed_matches', num_failed_matches)'''
-
-    for i, en in enumerate(en_stat.modelset):
-        for j, te in enumerate(te_stat.modelset):
-            rand = random.randint(1, 60)
-            if(rand == 7):
                 score = float(scores_plda.scoremat[i,j])
-                if(en.rsplit('/')[0] == te.rsplit('/')[0]):
+                if(is_match):
                     positive_scores.append(score)
                     positive_scores_mask[i,j] = 1
                 else:
                     negative_scores.append(score)
                     negative_scores_mask[i,j] = 1
+        print('num_failed_matches', num_failed_matches, '/', num_failed_matches)
 
-    # Calculating EER
-    print('calculating EER') #TODO TODO TODO WHY THE FUCK DOES IT JUST STOP IN EER
-    eer, th = pc.EER(torch.tensor(positive_scores), torch.tensor(negative_scores))
-    print('EER: ', eer)
-    print('threshold: ', th)
+        # Calculating EER
+        print('calculating EER')
+        eer, th = pc.EER(torch.tensor(positive_scores), torch.tensor(negative_scores))
+        print('EER: ', eer)
+        print('threshold: ', th)
 
-    # Generating images for tensorboard
-    img = np.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
-    img[2] = np.array([scores_plda.scoremat])
-    tb_logger.experiment.add_image('score_matrix', img, 0)
+        # Generating images for tensorboard
+        print('generating images for tensorboard')
+        img = np.zeros((3, scores_plda.scoremask.shape[0], scores_plda.scoremask.shape[1]))
+        img[2] = np.array([scores_plda.scoremask])
+        tb_logger.experiment.add_image('score_mask', img, 0)
 
-    img = np.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
-    img[1] = np.array([positive_scores_mask])
-    img[0] = np.array([negative_scores_mask])
-    tb_logger.experiment.add_image('ground_truth', img, 0)
+        img = np.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
+        img[2] = np.array([scores_plda.scoremat])
+        tb_logger.experiment.add_image('score_matrix', img, 0)
 
-    img = np.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
-    img[1] = np.array([scores_plda.scoremat*positive_scores_mask])
-    img[0] = np.array([scores_plda.scoremat*negative_scores_mask])
-    tb_logger.experiment.add_image('ground_truth_scores', img, 0)
+        img = np.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
+        img[1] = np.array([positive_scores_mask])
+        img[0] = np.array([negative_scores_mask])
+        tb_logger.experiment.add_image('ground_truth', img, 0)
 
-    checked_values_map = positive_scores_mask + negative_scores_mask
-    positive_prediction_mask = np.zeros_like(scores_plda.scoremat)
-    negative_prediction_mask = np.zeros_like(scores_plda.scoremat)
-    for i, score in np.ndenumerate(scores_plda.scoremat):
-        if(score >= th):
-            positive_prediction_mask[i] = 1
-        else:
-            negative_prediction_mask[i] = 1
-    
-    img = np.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
-    img[1] = np.array([positive_prediction_mask*checked_values_map])
-    img[0] = np.array([negative_prediction_mask*checked_values_map])
-    tb_logger.experiment.add_image('prediction', img, 0)
-    
-    img = np.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
-    img[1] = np.array([scores_plda.scoremat*positive_prediction_mask*checked_values_map])
-    img[0] = np.array([scores_plda.scoremat*negative_prediction_mask*checked_values_map])
-    tb_logger.experiment.add_image('prediction_scores', img, 0)
-    
-    img = np.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
-    img[1] = np.array([positive_scores_mask*positive_prediction_mask])
-    img[0] = np.array([negative_scores_mask*negative_prediction_mask])
-    tb_logger.experiment.add_image('correct_prediction', img, 0)
-    
-    img = np.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
-    img[1] = np.array([positive_scores_mask*negative_prediction_mask])
-    img[0] = np.array([negative_scores_mask*positive_prediction_mask])
-    tb_logger.experiment.add_image('false_prediction', img, 0)
+        img = np.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
+        img[1] = np.array([scores_plda.scoremat*positive_scores_mask])
+        img[0] = np.array([scores_plda.scoremat*negative_scores_mask])
+        tb_logger.experiment.add_image('ground_truth_scores', img, 0)
 
-    print('DONE') #TODO test if everything works and set up to extract x-vectors with gpu
-    print('DONE')
-    print('DONE')
+        checked_values_map = positive_scores_mask + negative_scores_mask
+        positive_prediction_mask = np.zeros_like(scores_plda.scoremat)
+        negative_prediction_mask = np.zeros_like(scores_plda.scoremat)
+        for i, score in np.ndenumerate(scores_plda.scoremat):
+            if(score >= th):
+                positive_prediction_mask[i] = 1
+            else:
+                negative_prediction_mask[i] = 1
+        
+        img = np.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
+        img[1] = np.array([positive_prediction_mask*checked_values_map])
+        img[0] = np.array([negative_prediction_mask*checked_values_map])
+        tb_logger.experiment.add_image('prediction', img, 0)
+        
+        img = np.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
+        img[1] = np.array([scores_plda.scoremat*positive_prediction_mask*checked_values_map])
+        img[0] = np.array([scores_plda.scoremat*negative_prediction_mask*checked_values_map])
+        tb_logger.experiment.add_image('prediction_scores', img, 0)
+        
+        img = np.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
+        img[1] = np.array([positive_scores_mask*positive_prediction_mask])
+        img[0] = np.array([negative_scores_mask*negative_prediction_mask])
+        tb_logger.experiment.add_image('correct_prediction', img, 0)
+        
+        img = np.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
+        img[1] = np.array([positive_scores_mask*negative_prediction_mask])
+        img[0] = np.array([negative_scores_mask*positive_prediction_mask])
+        tb_logger.experiment.add_image('false_prediction', img, 0)
+
+    print('DONE') #TODO the scoremat seems to be the same everytime suffeled or not. this could be what braks the shuffeled tests
 '''
 Notes:
 

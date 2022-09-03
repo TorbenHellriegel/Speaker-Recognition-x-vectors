@@ -6,7 +6,7 @@ import torch
 from sklearn.model_selection import StratifiedKFold
 from speechbrain.processing.PLDA_LDA import *
 
-def split_en_te(x_vec_test, x_label_test, mean_same_speaker=False):
+def split_en_te(x_vec_test, x_label_test, mean_same_speaker=False): #TODO outdated delete later
     skf = StratifiedKFold(n_splits=2, shuffle=True)
     enroll_index, test_index = [], []
     for eni, tei in skf.split(x_vec_test, x_label_test):
@@ -39,39 +39,6 @@ def split_en_te(x_vec_test, x_label_test, mean_same_speaker=False):
 
     return en_xv, en_label, te_xv, te_label
 
-'''def split_en_te_old(x_vec_test, x_label_test, mean_same_speaker=False):
-    skf = StratifiedKFold(n_splits=2, shuffle=True)
-    enroll_index, test_index = [], []
-    for eni, tei in skf.split(x_vec_test, x_label_test):
-        enroll_index = eni
-        test_index = tei
-        
-    enroll_xv = x_vec_test[enroll_index]
-    enroll_label = x_label_test[enroll_index]
-    test_xv = x_vec_test[test_index]
-    test_label = x_label_test[test_index]
-
-    match_index = []
-    for i, (el, tl) in enumerate(zip(enroll_label, test_label)):
-        if(el==tl):
-            match_index.append(i)
-        
-    enroll_xv = enroll_xv[match_index]
-    enroll_label = enroll_label[match_index]
-    test_xv = test_xv[match_index]
-    test_label = test_label[match_index]
-    
-    if(mean_same_speaker):
-        en_xv, en_label = mean_same_speakers(enroll_xv, enroll_label)
-        te_xv, te_label = mean_same_speakers(test_xv, test_label)
-    else:
-        en_xv = enroll_xv
-        en_label = enroll_label
-        te_xv = test_xv
-        te_label = test_label
-
-    return en_xv, en_label, te_xv, te_label'''
-
 def split_en_te2(x_vec_test, x_label_test):
     en_xv = []
     en_label = []
@@ -81,7 +48,7 @@ def split_en_te2(x_vec_test, x_label_test):
     #x_vec_test, x_label_test = sklearn.utils.shuffle(x_vec_test, x_label_test)###TODO comment out and in to compare different results in plda_test
     en_xv = x_vec_test
     en_label = x_label_test
-    x_vec_test, x_label_test = sklearn.utils.shuffle(x_vec_test, x_label_test)###TODO comment out and in to compare different results in plda_test
+    #x_vec_test, x_label_test = sklearn.utils.shuffle(x_vec_test, x_label_test)###TODO comment out and in to compare different results in plda_test
     te_xv = x_vec_test
     te_label = x_label_test
 
@@ -219,6 +186,8 @@ def EER(positive_scores, negative_scores):
     EER = (FAR[min_index] + FRR[min_index]) / 2
 
     return float(EER), float(thresholds[min_index])
+
+# TODO def minDCF
 
 def save_plda(plda, file_name):
     try:
