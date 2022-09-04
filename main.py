@@ -152,9 +152,9 @@ class XVectorModel(pl.LightningModule):
 
 if __name__ == "__main__":
     # Set which parts of the code to run
-    train_x_vector_model = True
-    extract_x_vectors = True
-    train_plda = True
+    train_x_vector_model = False
+    extract_x_vectors = False
+    train_plda = False
     test_plda = True
 
     # Define model and trainer
@@ -176,7 +176,7 @@ if __name__ == "__main__":
 
     trainer = pl.Trainer(callbacks=[early_stopping_callback, checkpoint_callback],
                         logger=tb_logger, log_every_n_steps=1,
-                        accelerator='gpu', devices=[0],# strategy='ddp',
+                        accelerator='gpu', devices=[1],# strategy='ddp',
                         max_epochs=config.num_epochs)
                         #small test adjust options: fast_dev_run=True, limit_train_batches=0.0001, limit_val_batches=0.001, limit_test_batches=0.002
 
@@ -277,8 +277,8 @@ if __name__ == "__main__":
             test_id = pair.split(" ")[2].rstrip().split(".")[0].strip()
 
             try:
-                i = int(np.where(scores_plda.modelset == enrol_id)[0][0])
-                j = int(np.where(scores_plda.segset == test_id)[0][0])
+                i = int(np.where(scores_plda.modelset == enrol_id+'.wav')[0][0])
+                j = int(np.where(scores_plda.segset == test_id+'.wav')[0][0])
                 total_matches += 1
             except:
                 num_failed_matches += 1
