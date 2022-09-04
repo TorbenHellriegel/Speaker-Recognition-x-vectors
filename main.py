@@ -148,16 +148,18 @@ class XVectorModel(pl.LightningModule):
             test_data_loader = DataLoader(dataset=self.dataset, batch_size=self.batch_size, num_workers=4, shuffle=False)
         return test_data_loader
 
+
+
 if __name__ == "__main__":
     # Set which parts of the code to run
-    train_x_vector_model = False
-    extract_x_vectors = False
+    train_x_vector_model = True
+    extract_x_vectors = True
     train_plda = True
-    test_plda = False
+    test_plda = True
 
     # Define model and trainer
     print('setting up model and trainer parameters')
-    config = Config(num_epochs=15, checkpoint_path='lightning_logs/x_vector_v1_2/checkpoints/last.ckpt') #adjust batch size, epoch, etc. here
+    config = Config(num_epochs=20, checkpoint_path='lightning_logs/x_vector_v1_2/checkpoints/last.ckpt') #adjust batch size, epoch, etc. here
 
     tb_logger = pl_loggers.TensorBoardLogger(save_dir="./")
     early_stopping_callback = EarlyStopping(monitor="val_step_loss", mode="min")
@@ -237,14 +239,14 @@ if __name__ == "__main__":
         print('training plda')
         plda = pc.setup_plda(rank_f=config.plda_rank_f)
         plda = pc.train_plda(plda, tr_stat)
-        pc.save_plda(plda, 'plda_v1')
+        pc.save_plda(plda, 'plda_v3')
 
 
 
     if(test_plda):
-        
+        print('loading x_vector data')
         # Extracting the x-vectors, labels and id from the csv
-        x_vectors_test = pd.read_csv('x_vectors/x_vector_test_v1.csv')
+        x_vectors_test = pd.read_csv('x_vectors/x_vector_test_v1_1.csv')
         x_id_test = np.array(x_vectors_test.iloc[:, 1])
         x_label_test = np.array(x_vectors_test.iloc[:, 2], dtype=int)
         x_vec_test = np.array([np.array(x_vec[1:-1].split(), dtype=np.float64) for x_vec in x_vectors_test.iloc[:, 3]])
@@ -259,7 +261,7 @@ if __name__ == "__main__":
         # Testing plda
         print('testing plda')
         if(not train_plda):
-            plda = pc.load_plda('plda/plda_v1.pickle')
+            plda = pc.load_plda('plda/plda_v2.pickle')
         scores_plda = pc.test_plda(plda, en_stat, te_stat)
 
         positive_scores = []
@@ -345,7 +347,7 @@ if __name__ == "__main__":
         img[0] = np.array([negative_scores_mask*positive_prediction_mask])
         tb_logger.experiment.add_image('false_prediction', img, 0)
 
-    print('DONE') #TODO the scoremat seems to be the same everytime suffeled or not. this could be what braks the shuffeled tests
+    print('DONE') #TODO the scoremat seems to be the same everytime shuffeled or not. this could be what braks the shuffeled tests
 '''
 Notes:
 
