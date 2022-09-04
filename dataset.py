@@ -79,15 +79,11 @@ class Dataset(Dataset):
         # Gat the list of samples and labels
         test_samples = [(sample, 'none') for sample in globs]
         test_labels = [os.path.basename(os.path.dirname(os.path.dirname(f))) for f in globs]
-        for i in range(self.augmentations_per_sample):
-            test_samples = test_samples + [(sample, random.choice(['music', 'speech', 'noise', 'rir'])) for sample in globs]
-            test_labels = test_labels + [os.path.basename(os.path.dirname(os.path.dirname(f))) for f in globs]
             
         unique_labels = np.unique(test_labels)
         print('found:')
         print(len(unique_labels), ' unique speakers')
-        print(int(len(test_samples)/(self.augmentations_per_sample+1)), ' voice samples')
-        print(len(test_samples), ' total voice samples including augmentations')
+        print(len(test_samples), ' voice samples')
         print('DONE collectiong samples')
 
         self.test_samples = list(np.array(test_samples))
