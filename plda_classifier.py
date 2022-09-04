@@ -91,7 +91,6 @@ def setup_plda(mean=None, F=None, Sigma=None, rank_f=150, nb_iter=10, scaling_fa
     return plda
 
 def train_plda(plda, xvectors_stat):
-    # Training PLDA model: M ~ (mean, F, Sigma)
     plda.plda(xvectors_stat)
     return plda
 

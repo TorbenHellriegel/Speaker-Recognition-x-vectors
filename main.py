@@ -151,8 +151,8 @@ class XVectorModel(pl.LightningModule):
 if __name__ == "__main__":
     # Set which parts of the code to run
     train_x_vector_model = False
-    extract_x_vectors = True
-    train_plda = False
+    extract_x_vectors = False
+    train_plda = True
     test_plda = False
 
     # Define model and trainer
@@ -211,11 +211,11 @@ if __name__ == "__main__":
         if(train_x_vector_model):
             trainer.test(model)
             x_vector = pd.DataFrame(x_vector)
-            x_vector.to_csv('x_vectors/x_vector_test_v1.csv')
+            x_vector.to_csv('x_vectors/x_vector_test_v2.csv')
         elif(config.checkpoint_path != 'none'):
             trainer.test(model, ckpt_path=config.checkpoint_path)
             x_vector = pd.DataFrame(x_vector)
-            x_vector.to_csv('x_vectors/x_vector_test_v1.csv')
+            x_vector.to_csv('x_vectors/x_vector_test_v2.csv')
         else:
             print('could not extract test x-vectors')
     
@@ -227,20 +227,11 @@ if __name__ == "__main__":
         x_id_train = np.array(x_vectors_train.iloc[:, 1])
         x_label_train = np.array(x_vectors_train.iloc[:, 2], dtype=int)
         x_vec_train = np.array([np.array(x_vec[1:-1].split(), dtype=np.float64) for x_vec in x_vectors_train.iloc[:, 3]])
-        
-        x_vectors_train = pd.read_csv('x_vectors/x_vector_test_v1.csv')
-        x_id_test = np.array(x_vectors_train.iloc[:, 1])
-        x_label_test = np.array(x_vectors_train.iloc[:, 2], dtype=int)
-        x_vec_test = np.array([np.array(x_vec[1:-1].split(), dtype=np.float64) for x_vec in x_vectors_train.iloc[:, 3]])
 
         # Generate x_vec stat objects
         print('generating x_vec stat objects')
-        x_vec_train, x_label_train, x_id_train = sklearn.utils.shuffle(x_vec_train, x_label_train, x_id_train)###TODO comment out and in to compare different results in plda_test
+        #x_vec_train, x_label_train, x_id_train = sklearn.utils.shuffle(x_vec_train, x_label_train, x_id_train)###TODO comment out and in to compare different results in plda_test
         tr_stat = pc.get_train_x_vec(x_vec_train, x_label_train, x_id_train)
-        #x_vec_test, x_id_test = sklearn.utils.shuffle(x_vec_test, x_id_test)###TODO comment out and in to compare different results in plda_test
-        en_stat = pc.get_enroll_x_vec(x_vec_test, x_id_test)
-        #x_vec_test, x_id_test = sklearn.utils.shuffle(x_vec_test, x_id_test)###TODO comment out and in to compare different results in plda_test
-        te_stat = pc.get_test_x_vec(x_vec_test, x_id_test)
 
         # Training plda (or load pretrained plda)
         print('training plda')
@@ -250,8 +241,22 @@ if __name__ == "__main__":
 
 
 
-    # Testing plda
     if(test_plda):
+        
+        # Extracting the x-vectors, labels and id from the csv
+        x_vectors_test = pd.read_csv('x_vectors/x_vector_test_v1.csv')
+        x_id_test = np.array(x_vectors_test.iloc[:, 1])
+        x_label_test = np.array(x_vectors_test.iloc[:, 2], dtype=int)
+        x_vec_test = np.array([np.array(x_vec[1:-1].split(), dtype=np.float64) for x_vec in x_vectors_test.iloc[:, 3]])
+
+        # Generate x_vec stat objects
+        print('generating x_vec stat objects')
+        #x_vec_test, x_id_test = sklearn.utils.shuffle(x_vec_test, x_id_test)###TODO comment out and in to compare different results in plda_test
+        en_stat = pc.get_enroll_x_vec(x_vec_test, x_id_test)
+        #x_vec_test, x_id_test = sklearn.utils.shuffle(x_vec_test, x_id_test)###TODO comment out and in to compare different results in plda_test
+        te_stat = pc.get_test_x_vec(x_vec_test, x_id_test)
+
+        # Testing plda
         print('testing plda')
         if(not train_plda):
             plda = pc.load_plda('plda/plda_v1.pickle')
