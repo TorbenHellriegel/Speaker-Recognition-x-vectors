@@ -1,10 +1,11 @@
 import pickle
 
 import numpy as np
-import sklearn
+#import sklearn###TODO comment out and in to compare different results in plda_test
 import torch
 from sklearn.model_selection import StratifiedKFold
 from speechbrain.processing.PLDA_LDA import *
+
 
 def split_en_te(x_vec_test, x_label_test, mean_same_speaker=False): #TODO outdated delete later
     skf = StratifiedKFold(n_splits=2, shuffle=True)

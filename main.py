@@ -1,7 +1,7 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
-import sklearn
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -155,13 +155,13 @@ if __name__ == "__main__":
     train_x_vector_model = False
     extract_x_vectors = False
     train_plda = False
-    test_plda = False
+    test_plda = True
 
     # Define model and trainer
     print('setting up model and trainer parameters')
-    config = Config(num_epochs=20, checkpoint_path='lightning_logs/x_vector_v1_3/checkpoints/last.ckpt') #adjust batch size, epoch, etc. here
+    config = Config(num_epochs=20, batch_size=16, checkpoint_path='lightning_logs/x_vector_v1_3/checkpoints/last.ckpt') #adjust batch size, epoch, etc. here
 
-    tb_logger = pl_loggers.TensorBoardLogger(save_dir="./")
+    tb_logger = pl_loggers.TensorBoardLogger(save_dir="testlogs/")
     early_stopping_callback = EarlyStopping(monitor="val_step_loss", mode="min")
     checkpoint_callback = ModelCheckpoint(monitor='val_step_loss', save_top_k=10, save_last=True, verbose=True)
 
@@ -176,7 +176,7 @@ if __name__ == "__main__":
 
     trainer = pl.Trainer(callbacks=[early_stopping_callback, checkpoint_callback],
                         logger=tb_logger, log_every_n_steps=1,
-                        accelerator='gpu', devices=[0],# strategy='ddp',
+                        accelerator='cpu',# devices=[0],# strategy='ddp',
                         max_epochs=config.num_epochs)
                         #small test adjust options: fast_dev_run=True, limit_train_batches=0.0001, limit_val_batches=0.001, limit_test_batches=0.002
 
@@ -247,8 +247,9 @@ if __name__ == "__main__":
         print('loading x_vector data')
         # Extracting the x-vectors, labels and id from the csv
         x_vectors_test = pd.read_csv('x_vectors/x_vector_test_v1_1.csv')
+        x_vectors_test.columns = ['index', 'id', 'label', 'xvector']
         x_id_test = np.array(x_vectors_test.iloc[:, 1])
-        x_label_test = np.array(x_vectors_test.iloc[:, 2], dtype=int)
+        #x_label_test = np.array(x_vectors_test.iloc[:, 2], dtype=int) #TODO old remove later
         x_vec_test = np.array([np.array(x_vec[1:-1].split(), dtype=np.float64) for x_vec in x_vectors_test.iloc[:, 3]])
 
         # Generate x_vec stat objects
@@ -264,6 +265,10 @@ if __name__ == "__main__":
             plda = pc.load_plda('plda/plda_v2.pickle')
         scores_plda = pc.test_plda(plda, en_stat, te_stat)
 
+        en_xv = []
+        en_label = []
+        te_xv = []
+        te_label = []
         positive_scores = []
         negative_scores = []
         positive_scores_mask = np.zeros_like(scores_plda.scoremat)
@@ -273,12 +278,18 @@ if __name__ == "__main__":
         total_matches = 0
         for pair in open(config.data_folder_path + '/VoxCeleb/veri_test2.txt'):
             is_match = bool(int(pair.split(" ")[0].rstrip().split(".")[0].strip()))
-            enrol_id = pair.split(" ")[1].rstrip().split(".")[0].strip()
-            test_id = pair.split(" ")[2].rstrip().split(".")[0].strip()
+            enrol_id = pair.split(" ")[1].strip()
+            test_id = pair.split(" ")[2].strip()
 
             try:
-                i = int(np.where(scores_plda.modelset == enrol_id+'.wav')[0][0])
-                j = int(np.where(scores_plda.segset == test_id+'.wav')[0][0])
+                i = int(np.where(scores_plda.modelset == enrol_id)[0][0])
+                en_xv.append(np.array(x_vectors_test.loc[x_vectors_test['id'] == enrol_id, 'xvector'].item()[1:-1].split(), dtype=np.float64))
+                en_label.append(int(enrol_id.split(".")[0].split("/")[0][2:]))
+
+                j = int(np.where(scores_plda.segset == test_id)[0][0])
+                te_xv.append(np.array(x_vectors_test.loc[x_vectors_test['id'] == test_id, 'xvector'].item()[1:-1].split(), dtype=np.float64))
+                te_label.append(int(test_id.split(".")[0].split("/")[0][2:]))
+
                 total_matches += 1
             except:
                 num_failed_matches += 1
@@ -290,7 +301,11 @@ if __name__ == "__main__":
                 else:
                     negative_scores.append(score)
                     negative_scores_mask[i,j] = 1
-        print('num_failed_matches', num_failed_matches, '/', num_failed_matches)
+        print('num_failed_matches', num_failed_matches, '/', total_matches)
+        en_xv = np.array(en_xv)
+        en_label = np.array(en_label)
+        te_xv = np.array(te_xv)
+        te_label = np.array(te_label)
 
         # Calculating EER
         print('calculating EER')
@@ -305,12 +320,19 @@ if __name__ == "__main__":
         print('threshold: ', min_dcf_th)
 
         # Generating images for tensorboard
+        scores_plda.scoremat -= np.min(scores_plda.scoremat)
+        scores_plda.scoremat /= np.max(scores_plda.scoremat)
+
         print('generating images for tensorboard')
         img = np.zeros((3, scores_plda.scoremask.shape[0], scores_plda.scoremask.shape[1]))
+        img[0] = np.array([scores_plda.scoremask])
+        img[1] = np.array([scores_plda.scoremask])
         img[2] = np.array([scores_plda.scoremask])
         tb_logger.experiment.add_image('score_mask', img, 0)
 
         img = np.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
+        img[0] = np.array([scores_plda.scoremat])
+        img[1] = np.array([scores_plda.scoremat])
         img[2] = np.array([scores_plda.scoremat])
         tb_logger.experiment.add_image('score_matrix', img, 0)
 
@@ -324,34 +346,133 @@ if __name__ == "__main__":
         img[0] = np.array([scores_plda.scoremat*negative_scores_mask])
         tb_logger.experiment.add_image('ground_truth_scores', img, 0)
 
+        # checked_values_map = positive_scores_mask + negative_scores_mask
+        # positive_prediction_mask = np.zeros_like(scores_plda.scoremat)
+        # negative_prediction_mask = np.zeros_like(scores_plda.scoremat)
+        # for i, score in np.ndenumerate(scores_plda.scoremat):
+        #     if(score >= eer_th):
+        #         positive_prediction_mask[i] = 1
+        #     else:
+        #         negative_prediction_mask[i] = 1
+
+        # checked_values_map = positive_scores_mask + negative_scores_mask
+        # eer_mask = np.zeros_like(scores_plda.scoremat)
+        # eer_mask_inv = np.zeros_like(scores_plda.scoremat)
+        # min_dcf_mask = np.zeros_like(scores_plda.scoremat)
+        # min_dcf_mask_inv = np.zeros_like(scores_plda.scoremat)
+        # for i, score in np.ndenumerate(scores_plda.scoremat):
+        #     if(score >= eer_th):
+        #         eer_mask[i] = 1
+        #     else:
+        #         eer_mask_inv[i] = 1
+        #     if(score >= min_dcf):
+        #         min_dcf_mask[i] = 1
+        #     else:
+        #         min_dcf_mask_inv[i] = 1
+        
         checked_values_map = positive_scores_mask + negative_scores_mask
-        positive_prediction_mask = np.zeros_like(scores_plda.scoremat)
-        negative_prediction_mask = np.zeros_like(scores_plda.scoremat)
-        for i, score in np.ndenumerate(scores_plda.scoremat):
-            if(score >= eer_th):
-                positive_prediction_mask[i] = 1
-            else:
-                negative_prediction_mask[i] = 1
+        checked_values = checked_values_map * scores_plda.scoremat
+
+        eer_prediction_positive = np.where(checked_values >= eer_th, 1, 0)
+        eer_prediction_negative = np.where(checked_values < eer_th, 1, 0)
+        min_dcf_prediction_positive = np.where(checked_values >= min_dcf_th, 1, 0)
+        min_dcf_prediction_negative = np.where(checked_values < min_dcf_th, 1, 0)
         
-        img = np.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
-        img[1] = np.array([positive_prediction_mask*checked_values_map])
-        img[0] = np.array([negative_prediction_mask*checked_values_map])
-        tb_logger.experiment.add_image('prediction', img, 0)
+        # img = np.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
+        # img[1] = np.array([positive_prediction_mask*checked_values_map])
+        # img[0] = np.array([negative_prediction_mask*checked_values_map])
+        # tb_logger.experiment.add_image('prediction', img, 0)
+    
+        img = np.ones((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]*2+5))
+        img[1,:,:checked_values.shape[1]] = eer_prediction_positive * scores_plda.scoremat
+        img[0,:,:checked_values.shape[1]] = eer_prediction_negative * scores_plda.scoremat
+        img[1,:,-checked_values.shape[1]:] = min_dcf_prediction_positive * scores_plda.scoremat
+        img[0,:,-checked_values.shape[1]:] = min_dcf_prediction_negative * scores_plda.scoremat
+        img[2,:,:checked_values.shape[1]] = 0
+        img[2,:,-checked_values.shape[1]:] = 0
+        tb_logger.experiment.add_image('prediction_scores_eer_min_dcf', img, 0)
         
-        img = np.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
-        img[1] = np.array([scores_plda.scoremat*positive_prediction_mask*checked_values_map])
-        img[0] = np.array([scores_plda.scoremat*negative_prediction_mask*checked_values_map])
-        tb_logger.experiment.add_image('prediction_scores', img, 0)
+        # img = np.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
+        # img[1] = np.array([scores_plda.scoremat*positive_prediction_mask*checked_values_map])
+        # img[0] = np.array([scores_plda.scoremat*negative_prediction_mask*checked_values_map])
+        # tb_logger.experiment.add_image('prediction_scores', img, 0)
+    
+        img = np.ones((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]*2+5))
+        img[1,:,:checked_values.shape[1]] = eer_prediction_positive
+        img[0,:,:checked_values.shape[1]] = eer_prediction_negative
+        img[1,:,-checked_values.shape[1]:] = min_dcf_prediction_positive
+        img[0,:,-checked_values.shape[1]:] = min_dcf_prediction_negative
+        img[2,:,:checked_values.shape[1]] = 0
+        img[2,:,-checked_values.shape[1]:] = 0
+        tb_logger.experiment.add_image('prediction_eer_min_dcf', img, 0)
         
-        img = np.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
-        img[1] = np.array([positive_scores_mask*positive_prediction_mask])
-        img[0] = np.array([negative_scores_mask*negative_prediction_mask])
-        tb_logger.experiment.add_image('correct_prediction', img, 0)
+        # img = np.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
+        # img[1] = np.array([positive_scores_mask*positive_prediction_mask])
+        # img[0] = np.array([negative_scores_mask*negative_prediction_mask])
+        # tb_logger.experiment.add_image('correct_prediction', img, 0)
+    
+        img = np.ones((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]*2+5))
+        img[1,:,:checked_values.shape[1]] = eer_prediction_positive * positive_scores_mask
+        img[0,:,:checked_values.shape[1]] = eer_prediction_negative * negative_scores_mask
+        img[1,:,-checked_values.shape[1]:] = min_dcf_prediction_positive * positive_scores_mask
+        img[0,:,-checked_values.shape[1]:] = min_dcf_prediction_negative * negative_scores_mask
+        img[2,:,:checked_values.shape[1]] = 0
+        img[2,:,-checked_values.shape[1]:] = 0
+        tb_logger.experiment.add_image('correct_prediction_eer_min_dcf', img, 0)
         
-        img = np.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
-        img[1] = np.array([positive_scores_mask*negative_prediction_mask])
-        img[0] = np.array([negative_scores_mask*positive_prediction_mask])
-        tb_logger.experiment.add_image('false_prediction', img, 0)
+        # img = np.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
+        # img[1] = np.array([positive_scores_mask*negative_prediction_mask])
+        # img[0] = np.array([negative_scores_mask*positive_prediction_mask])
+        # tb_logger.experiment.add_image('false_prediction', img, 0)
+    
+        img = np.ones((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]*2+5))
+        img[1,:,:checked_values.shape[1]] = eer_prediction_positive * negative_scores_mask
+        img[0,:,:checked_values.shape[1]] = eer_prediction_negative * positive_scores_mask
+        img[1,:,-checked_values.shape[1]:] = min_dcf_prediction_positive * negative_scores_mask
+        img[0,:,-checked_values.shape[1]:] = min_dcf_prediction_negative * positive_scores_mask
+        img[2,:,:checked_values.shape[1]] = 0
+        img[2,:,-checked_values.shape[1]:] = 0
+        tb_logger.experiment.add_image('false_prediction_eer_min_dcf', img, 0)
+
+        def get_scatter_plot_data(new_stat_obj):
+            x = np.array(new_stat_obj.stat1[:, 0])
+            y = np.array(new_stat_obj.stat1[:, 1])
+            c = np.array(new_stat_obj.modelset, dtype=np.float64)
+            c -= np.min(c)-1
+            c /= np.max(c)
+            return x, y, c
+
+        x_sum = []
+        y_sum = []
+        c_sum = []
+
+        fig, axs = plt.subplots(2, 2)
+
+        en_stat = pc.get_enroll_x_vec(en_xv, en_label)
+        new_stat_obj = pc.lda(en_stat)
+        x, y, c = get_scatter_plot_data(new_stat_obj)
+        x_sum.append(x)
+        y_sum.append(y)
+        c_sum.append(c)
+        axs[0, 0].scatter(x, y, c=c)
+
+        te_stat = pc.get_test_x_vec(te_xv, te_label)
+        new_stat_obj = pc.lda(te_stat)
+        x, y, c = get_scatter_plot_data(new_stat_obj)
+        x_sum.append(x)
+        y_sum.append(y)
+        c_sum.append(c)
+        axs[0, 1].scatter(x, y, c=c)
+        
+        axs[1, 0].scatter(x_sum, y_sum, c=c_sum)
+
+        c_sum = np.array(c_sum)
+        c_sum[:int(len(c_sum)/2)] = 0.3
+        c_sum[int(len(c_sum)/2):] = 0.7
+        
+        axs[1, 1].scatter(x_sum, y_sum, c=c_sum)
+
+        tb_logger.experiment.add_figure('scatter_plot', plt.gcf())
 
     print('DONE')
 '''

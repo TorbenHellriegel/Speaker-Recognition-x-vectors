@@ -34,7 +34,7 @@ pc.save_plda(plda, 'plda_test')
 
 # Testing plda
 print('testing plda')
-scores_plda = pc.test_plda(plda, en_stat, te_stat) #TODO test if i can calculate the result myself by using the matrix in plda.F
+scores_plda = pc.test_plda(plda, en_stat, te_stat)
 
 # Dividing scores into positive and negative
 positive_scores = []
