@@ -155,11 +155,11 @@ if __name__ == "__main__":
     train_x_vector_model = False
     extract_x_vectors = False
     train_plda = False
-    test_plda = True
+    test_plda = False
 
     # Define model and trainer
     print('setting up model and trainer parameters')
-    config = Config(num_epochs=20, checkpoint_path='lightning_logs/x_vector_v1_2/checkpoints/last.ckpt') #adjust batch size, epoch, etc. here
+    config = Config(num_epochs=20, checkpoint_path='lightning_logs/x_vector_v1_3/checkpoints/last.ckpt') #adjust batch size, epoch, etc. here
 
     tb_logger = pl_loggers.TensorBoardLogger(save_dir="./")
     early_stopping_callback = EarlyStopping(monitor="val_step_loss", mode="min")
@@ -176,7 +176,7 @@ if __name__ == "__main__":
 
     trainer = pl.Trainer(callbacks=[early_stopping_callback, checkpoint_callback],
                         logger=tb_logger, log_every_n_steps=1,
-                        accelerator='gpu', devices=[1],# strategy='ddp',
+                        accelerator='gpu', devices=[0],# strategy='ddp',
                         max_epochs=config.num_epochs)
                         #small test adjust options: fast_dev_run=True, limit_train_batches=0.0001, limit_val_batches=0.001, limit_test_batches=0.002
 
@@ -294,9 +294,15 @@ if __name__ == "__main__":
 
         # Calculating EER
         print('calculating EER')
-        eer, th = pc.EER(torch.tensor(positive_scores), torch.tensor(negative_scores))
+        eer, eer_th = pc.EER(torch.tensor(positive_scores), torch.tensor(negative_scores))
         print('EER: ', eer)
-        print('threshold: ', th)
+        print('threshold: ', eer_th)
+
+        # Calculating minDCF
+        print('calculating minDCF')
+        min_dcf, min_dcf_th = pc.minDCF(torch.tensor(positive_scores), torch.tensor(negative_scores))
+        print('minDCF: ', min_dcf)
+        print('threshold: ', min_dcf_th)
 
         # Generating images for tensorboard
         print('generating images for tensorboard')
@@ -322,7 +328,7 @@ if __name__ == "__main__":
         positive_prediction_mask = np.zeros_like(scores_plda.scoremat)
         negative_prediction_mask = np.zeros_like(scores_plda.scoremat)
         for i, score in np.ndenumerate(scores_plda.scoremat):
-            if(score >= th):
+            if(score >= eer_th):
                 positive_prediction_mask[i] = 1
             else:
                 negative_prediction_mask[i] = 1
@@ -347,12 +353,21 @@ if __name__ == "__main__":
         img[0] = np.array([negative_scores_mask*positive_prediction_mask])
         tb_logger.experiment.add_image('false_prediction', img, 0)
 
-    print('DONE') #TODO the scoremat seems to be the same everytime shuffeled or not. this could be what braks the shuffeled tests
+    print('DONE')
 '''
 Notes:
 
-Can run in background with this command. Also saves output in .out file:
-nohup python -u main.py &> out/NAME.out &
+screen commands reminder:
+-------------------------
+screen          start screen
+screen -list    list screens
+ctrl+a d        detach from current screen
+screen -r       reatach to screen
+ctrl+a c        create new window
+ctrl+a "        show windows
+exit            exit/kill window
+ctrl+a A        rename window
+ctrl+a H        create log file/toggle logging
 
 my data used
 153516 sample each 3 sec
