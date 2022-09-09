@@ -40,21 +40,6 @@ def split_en_te(x_vec_test, x_label_test, mean_same_speaker=False): #TODO outdat
 
     return en_xv, en_label, te_xv, te_label
 
-def split_en_te2(x_vec_test, x_label_test):
-    en_xv = []
-    en_label = []
-    te_xv = []
-    te_label = []
-
-    #x_vec_test, x_label_test = sklearn.utils.shuffle(x_vec_test, x_label_test)###TODO comment out and in to compare different results in plda_test
-    en_xv = x_vec_test
-    en_label = x_label_test
-    #x_vec_test, x_label_test = sklearn.utils.shuffle(x_vec_test, x_label_test)###TODO comment out and in to compare different results in plda_test
-    te_xv = x_vec_test
-    te_label = x_label_test
-
-    return en_xv, en_label, te_xv, te_label
-
 def mean_same_speakers(test_xv, test_label):
     te_xv = []
     te_label = []

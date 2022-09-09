@@ -174,12 +174,73 @@ class plda_score_stat_object():
         
         axs[1,0].scatter(x_sum, y_sum, c=c_sum)
         axs[1,0].title.set_text('Enrollment + Test Data')
+    
+        ente_xv = np.zeros((self.en_xv.shape[0]*2, self.en_xv.shape[1]))
+        ente_xv[:self.en_xv.shape[0]] = self.en_xv
+        ente_xv[-self.te_xv.shape[0]:] = self.te_xv
+        ente_label = np.zeros(self.en_label.shape[0]*2)
+        ente_label[:self.en_label.shape[0]] = self.en_label
+        ente_label[-self.te_label.shape[0]:] = self.te_label
 
-        c_sum = np.array(c_sum)
-        c_sum[:int(len(c_sum)/2)] = 0.3
-        c_sum[int(len(c_sum)/2):] = 0.7
+        ente_stat = pc.get_test_x_vec(ente_xv, ente_label)
+        new_stat_obj = pc.lda(ente_stat)
+        x, y, c = get_scatter_plot_data(new_stat_obj)
+        x_sum.append(x)
+        y_sum.append(y)
+        c_sum.append(c)
+        axs[1,1].scatter(x, y, c=c)
+        axs[1,1].title.set_text('Enrollment + Test Data new evaluation')
+
+        writer.add_figure('scatter_plot_before_training', plt.gcf())
+
         
-        axs[1,1].scatter(x_sum, y_sum, c=c_sum)
-        axs[1,1].title.set_text('Enrollment + Test Data')
+        for i, (e, t)in enumerate(zip(self.en_xv, self.te_xv)):
+            self.en_xv[i,:] = np.dot(self.plda.Sigma, e)
+            self.te_xv[i,:] = np.dot(self.plda.Sigma, t)
 
-        writer.add_figure('scatter_plot', plt.gcf())
+
+        x_sum = []
+        y_sum = []
+        c_sum = []
+
+        fig, axs = plt.subplots(2, 2)
+        fig.set_size_inches(64, 48)
+
+        en_stat = pc.get_enroll_x_vec(self.en_xv, self.en_label)
+        new_stat_obj = pc.lda(en_stat)
+        x, y, c = get_scatter_plot_data(new_stat_obj)
+        x_sum.append(x)
+        y_sum.append(y)
+        c_sum.append(c)
+        axs[0,0].scatter(x, y, c=c)
+        axs[0,0].title.set_text('Enrollment Data')
+
+        te_stat = pc.get_test_x_vec(self.te_xv, self.te_label)
+        new_stat_obj = pc.lda(te_stat)
+        x, y, c = get_scatter_plot_data(new_stat_obj)
+        x_sum.append(x)
+        y_sum.append(y)
+        c_sum.append(c)
+        axs[0,1].scatter(x, y, c=c)
+        axs[0,1].title.set_text('Test Data')
+        
+        axs[1,0].scatter(x_sum, y_sum, c=c_sum)
+        axs[1,0].title.set_text('Enrollment + Test Data')
+    
+        ente_xv = np.zeros((self.en_xv.shape[0]*2, self.en_xv.shape[1]))
+        ente_xv[:self.en_xv.shape[0]] = self.en_xv
+        ente_xv[-self.te_xv.shape[0]:] = self.te_xv
+        ente_label = np.zeros(self.en_label.shape[0]*2)
+        ente_label[:self.en_label.shape[0]] = self.en_label
+        ente_label[-self.te_label.shape[0]:] = self.te_label
+
+        ente_stat = pc.get_test_x_vec(ente_xv, ente_label)
+        new_stat_obj = pc.lda(ente_stat)
+        x, y, c = get_scatter_plot_data(new_stat_obj)
+        x_sum.append(x)
+        y_sum.append(y)
+        c_sum.append(c)
+        axs[1,1].scatter(x, y, c=c)
+        axs[1,1].title.set_text('Enrollment + Test Data new evaluation')
+
+        writer.add_figure('scatter_plot_after_training', plt.gcf())
