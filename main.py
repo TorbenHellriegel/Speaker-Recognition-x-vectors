@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
@@ -265,6 +264,8 @@ if __name__ == "__main__":
 
         # Generating images for tensorboard
         score.plot_images(tb_logger.experiment)
+
+        pc.save_plda(score, 'plda_score_v1')
 
     print('DONE')
 '''
