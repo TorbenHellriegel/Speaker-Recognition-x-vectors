@@ -13,7 +13,7 @@ from torch.utils.data import Dataset
 
 EPS = 1e-20
 
-class Dataset(Dataset): 
+class Dataset(Dataset):
     def __init__(self, sampling_rate=16000, mfcc_numcep=24, mfcc_nfilt=26, mfcc_nfft=512, data_folder_path='data', augmentations_per_sample=2):
         self.samples = []
         self.labels = []

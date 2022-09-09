@@ -125,13 +125,13 @@ def get_test_x_vec(te_xv, te_id):
     te_stat = StatObject_SB(modelset=te_sets, segset=te_sets, start=te_s, stop=te_s, stat0=te_stat0, stat1=te_xv)
     return te_stat
 
-def test_plda(plda, en_stat, te_stat):
+def plda_scores(plda, en_stat, te_stat):
     # Define special object for plda scoring
     ndx = Ndx(models=en_stat.modelset, testsegs=te_stat.modelset)
 
     # PLDA Scoring
-    scores_plda = fast_PLDA_scoring(en_stat, te_stat, ndx, plda.mean, plda.F, plda.Sigma, p_known=0.0)
-    return scores_plda
+    fast_plda_scores = fast_PLDA_scoring(en_stat, te_stat, ndx, plda.mean, plda.F, plda.Sigma, p_known=0.0)
+    return fast_plda_scores
 
 def EER(positive_scores, negative_scores):
     """Computes the EER (and its threshold).

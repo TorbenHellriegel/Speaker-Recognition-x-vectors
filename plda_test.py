@@ -34,7 +34,7 @@ pc.save_plda(plda, 'plda_test')
 
 # Testing plda
 print('testing plda')
-scores_plda = pc.test_plda(plda, en_stat, te_stat)
+scores_plda = pc.plda_scores(plda, en_stat, te_stat)
 
 # Dividing scores into positive and negative
 positive_scores = []
