@@ -67,7 +67,7 @@ class plda_score_stat_object():
         self.eer, self.eer_th = pc.EER(torch.tensor(self.positive_scores), torch.tensor(self.negative_scores))
         self.min_dcf, self.min_dcf_th = pc.minDCF(torch.tensor(self.positive_scores), torch.tensor(self.negative_scores))
 
-    def plot_images(self, writer):
+    def plot_images(self, writer, plda):
         scoremat_norm = np.array(self.plda_scores.scoremat)
         scoremat_norm -= np.min(scoremat_norm)
         scoremat_norm /= np.max(scoremat_norm)
@@ -195,8 +195,8 @@ class plda_score_stat_object():
 
         
         for i, (e, t)in enumerate(zip(self.en_xv, self.te_xv)):
-            self.en_xv[i,:] = np.dot(self.plda.Sigma, e)
-            self.te_xv[i,:] = np.dot(self.plda.Sigma, t)
+            self.en_xv[i,:] = np.dot(plda.Sigma, e)
+            self.te_xv[i,:] = np.dot(plda.Sigma, t)
 
 
         x_sum = []

@@ -263,7 +263,7 @@ if __name__ == "__main__":
         print('minDCF: ', score.min_dcf, '   threshold: ', score.min_dcf_th)
 
         # Generating images for tensorboard
-        score.plot_images(tb_logger.experiment)
+        score.plot_images(tb_logger.experiment, plda)
 
         pc.save_plda(score, 'plda_score_v1')
 
