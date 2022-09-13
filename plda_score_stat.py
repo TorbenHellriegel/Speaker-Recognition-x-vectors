@@ -1,8 +1,9 @@
-import pickle
-
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+import seaborn as sns
 import torch
+from sklearn.manifold import TSNE
 
 import plda_classifier as pc
 
@@ -13,8 +14,8 @@ class plda_score_stat_object():
         self.x_id_test = np.array(x_vectors_test.iloc[:, 1])
         self.x_vec_test = np.array([np.array(x_vec[1:-1].split(), dtype=np.float64) for x_vec in x_vectors_test.iloc[:, 3]])
 
-        self.en_stat = pc.get_enroll_x_vec(self.x_vec_test, self.x_id_test)
-        self.te_stat = pc.get_test_x_vec(self.x_vec_test, self.x_id_test)
+        self.en_stat = pc.get_x_vec_stat(self.x_vec_test, self.x_id_test)
+        self.te_stat = pc.get_x_vec_stat(self.x_vec_test, self.x_id_test)
 
         self.plda_scores = 0
         self.positive_scores = []
@@ -152,9 +153,9 @@ class plda_score_stat_object():
         c_sum = []
 
         fig, axs = plt.subplots(2, 2)
-        fig.set_size_inches(64, 48)
+        fig.set_size_inches(32, 24)
 
-        en_stat = pc.get_enroll_x_vec(self.en_xv, self.en_label)
+        en_stat = pc.get_x_vec_stat(self.en_xv, self.en_label)
         new_stat_obj = pc.lda(en_stat)
         x, y, c = get_scatter_plot_data(new_stat_obj)
         x_sum.append(x)
@@ -163,7 +164,7 @@ class plda_score_stat_object():
         axs[0,0].scatter(x, y, c=c)
         axs[0,0].title.set_text('Enrollment Data')
 
-        te_stat = pc.get_test_x_vec(self.te_xv, self.te_label)
+        te_stat = pc.get_x_vec_stat(self.te_xv, self.te_label)
         new_stat_obj = pc.lda(te_stat)
         x, y, c = get_scatter_plot_data(new_stat_obj)
         x_sum.append(x)
@@ -182,7 +183,7 @@ class plda_score_stat_object():
         ente_label[:self.en_label.shape[0]] = self.en_label
         ente_label[-self.te_label.shape[0]:] = self.te_label
 
-        ente_stat = pc.get_test_x_vec(ente_xv, ente_label)
+        ente_stat = pc.get_x_vec_stat(ente_xv, ente_label)
         new_stat_obj = pc.lda(ente_stat)
         x, y, c = get_scatter_plot_data(new_stat_obj)
         x_sum.append(x)
@@ -193,20 +194,36 @@ class plda_score_stat_object():
 
         writer.add_figure('scatter_plot_before_training', plt.gcf())
 
-        
-        for i, (e, t)in enumerate(zip(self.en_xv, self.te_xv)):
-            self.en_xv[i,:] = np.dot(plda.Sigma, e)
-            self.te_xv[i,:] = np.dot(plda.Sigma, t)
+        tsne = TSNE(2)
+        tsne_result = tsne.fit_transform(ente_xv)
 
+        tsne_result_df = pd.DataFrame({'tsne_1': tsne_result[:,0], 'tsne_2': tsne_result[:,1], 'label': ente_label})
+        fig, ax = plt.subplots(1)
+        fig.set_size_inches(16, 12)
+        sns.scatterplot(x='tsne_1', y='tsne_2', hue='label', data=tsne_result_df, ax=ax, s=80)
+        lim = (tsne_result.min()-5, tsne_result.max()+5)
+        ax.set_xlim(lim)
+        ax.set_ylim(lim)
+        ax.set_aspect('equal')
+        ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.0)
+
+        writer.add_figure('scatter_plot_TSNE_before_training', plt.gcf())
+
+
+
+        A = np.linalg.inv(plda.Sigma)
+        for i, (e, t)in enumerate(zip(self.en_xv, self.te_xv)):
+            self.en_xv[i,:] = np.dot(A, (e-plda.mean))
+            self.te_xv[i,:] = np.dot(A, (t-plda.mean))
 
         x_sum = []
         y_sum = []
         c_sum = []
 
         fig, axs = plt.subplots(2, 2)
-        fig.set_size_inches(64, 48)
+        fig.set_size_inches(32, 24)
 
-        en_stat = pc.get_enroll_x_vec(self.en_xv, self.en_label)
+        en_stat = pc.get_x_vec_stat(self.en_xv, self.en_label)
         new_stat_obj = pc.lda(en_stat)
         x, y, c = get_scatter_plot_data(new_stat_obj)
         x_sum.append(x)
@@ -215,7 +232,7 @@ class plda_score_stat_object():
         axs[0,0].scatter(x, y, c=c)
         axs[0,0].title.set_text('Enrollment Data')
 
-        te_stat = pc.get_test_x_vec(self.te_xv, self.te_label)
+        te_stat = pc.get_x_vec_stat(self.te_xv, self.te_label)
         new_stat_obj = pc.lda(te_stat)
         x, y, c = get_scatter_plot_data(new_stat_obj)
         x_sum.append(x)
@@ -234,7 +251,7 @@ class plda_score_stat_object():
         ente_label[:self.en_label.shape[0]] = self.en_label
         ente_label[-self.te_label.shape[0]:] = self.te_label
 
-        ente_stat = pc.get_test_x_vec(ente_xv, ente_label)
+        ente_stat = pc.get_x_vec_stat(ente_xv, ente_label)
         new_stat_obj = pc.lda(ente_stat)
         x, y, c = get_scatter_plot_data(new_stat_obj)
         x_sum.append(x)
@@ -244,3 +261,18 @@ class plda_score_stat_object():
         axs[1,1].title.set_text('Enrollment + Test Data new evaluation')
 
         writer.add_figure('scatter_plot_after_training', plt.gcf())
+
+        tsne = TSNE(2)
+        tsne_result = tsne.fit_transform(ente_xv)
+
+        tsne_result_df = pd.DataFrame({'tsne_1': tsne_result[:,0], 'tsne_2': tsne_result[:,1], 'label': ente_label})
+        fig, ax = plt.subplots(1)
+        fig.set_size_inches(16, 12)
+        sns.scatterplot(x='tsne_1', y='tsne_2', hue='label', data=tsne_result_df, ax=ax, s=80)
+        lim = (tsne_result.min()-5, tsne_result.max()+5)
+        ax.set_xlim(lim)
+        ax.set_ylim(lim)
+        ax.set_aspect('equal')
+        ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.0)
+
+        writer.add_figure('scatter_plot_TSNE_after_training', plt.gcf())

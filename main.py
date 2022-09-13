@@ -155,7 +155,7 @@ if __name__ == "__main__":
     train_x_vector_model = False
     extract_x_vectors = False
     train_plda = False
-    test_plda = True
+    test_plda = False
 
     # Define model and trainer
     print('setting up model and trainer parameters')
@@ -267,9 +267,16 @@ if __name__ == "__main__":
 
         pc.save_plda(score, 'plda_score_v1')
 
+    plda = pc.load_plda('plda/plda_v2.pickle')
+    score = pc.load_plda('plda/plda_score_v1.pickle')
+    score.plot_images(tb_logger.experiment, plda)
+
     print('DONE')
 '''
 Notes:
+
+Can run in background with this command. Also saves output in .out file:
+nohup python main.py &> out/NAME.out &
 
 screen commands reminder:
 -------------------------

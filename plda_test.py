@@ -2,27 +2,31 @@ import random
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+import seaborn as sns
 import sklearn
 import torch
+from sklearn.manifold import TSNE
 from torch.utils.tensorboard import SummaryWriter
 
 import plda_classifier as pc
 
 # Extract the x-vectors
 print('extracting x-vectors')
+
 x_vec_train = np.array([[random.randrange(i*100,(i+1)*100,1)/10000 for j in range(15)] for i in range(0, 50)])
 x_label_train = np.array([int(i/10) for i in range(0, 50)])
 en_xv = np.array([[random.randrange(i*100,(i+1)*100,1)/10000 for j in range(15)] for i in range(50, 100)])
 en_label = np.array([int(i/10) for i in range(50, 100)])
 te_xv = np.array([[random.randrange(i*100,(i+1)*100,1)/10000 for j in range(15)] for i in range(50, 100)])
 te_label = np.array([int(i/10) for i in range(50, 100)])
-
-# x_vec_train = np.random.rand(50, 15)
-# x_label_train = np.random.random_integers(0, 10, 50)
-# en_xv = np.random.rand(50, 15)
-# en_label = np.random.random_integers(0, 10, 50)
-# te_xv = np.random.rand(50, 15)
-# te_label = np.random.random_integers(0, 10, 50)
+'''
+x_vec_train = np.random.rand(50, 15)
+x_label_train = np.random.random_integers(0, 10, 50)
+en_xv = np.random.rand(50, 15)
+en_label = np.random.random_integers(0, 10, 50)
+te_xv = np.random.rand(50, 15)
+te_label = np.random.random_integers(0, 10, 50)'''
 
 #en_xv, en_label = sklearn.utils.shuffle(en_xv, en_label)###TODO comment out and in to compare different results in plda_test
 #te_xv, te_label = sklearn.utils.shuffle(te_xv, te_label)###TODO comment out and in to compare different results in plda_test
@@ -30,8 +34,8 @@ te_label = np.array([int(i/10) for i in range(50, 100)])
 # Generate x_vec stat objects
 print('generating x_vec stat objects')
 tr_stat = pc.get_train_x_vec(x_vec_train, x_label_train, x_label_train)
-en_stat = pc.get_enroll_x_vec(en_xv, ['id'+str(i) for i in range(en_xv.shape[0])])
-te_stat = pc.get_test_x_vec(te_xv, ['id'+str(i) for i in range(te_xv.shape[0])])
+en_stat = pc.get_x_vec_stat(en_xv, ['id'+str(i) for i in range(en_xv.shape[0])])
+te_stat = pc.get_x_vec_stat(te_xv, ['id'+str(i) for i in range(te_xv.shape[0])])
 
 # Training plda (or load pretrained plda)
 print('training plda')
@@ -74,7 +78,7 @@ min_dcf, min_dcf_th = pc.minDCF(torch.tensor(positive_scores), torch.tensor(nega
 print('minDCF: ', min_dcf)
 print('threshold: ', min_dcf_th)
 
-print('DONE NORMAL CODE########################################################################################################################################################################################################################')
+#print('DONE NORMAL CODE########################################################################################################################################################################################################################')
 
 def get_scatter_plot_data(new_stat_obj):
     x = np.array(new_stat_obj.stat1[:, 0])
@@ -135,7 +139,7 @@ if(False):
     print('Shuffle Tests########################################################################################################################################################################################################################')
 
     te_xv, te_label = sklearn.utils.shuffle(te_xv, te_label)
-    te_sets, te_stat = pc.get_test_x_vec(te_xv)
+    te_sets, te_stat = pc.get_x_vec_stat(te_xv)
 
     scores_plda = pc.test_plda(plda, en_sets, en_stat, te_sets, te_stat)
     mask = np.array(np.diag(np.diag(np.ones(scores_plda.scoremat.shape, dtype=np.int32))), dtype=bool)
@@ -174,7 +178,7 @@ if(False):
     print('my abs max score', np.max(np.abs(scores)))
  
 if(True):
-    print('Plot result########################################################################################################################################################################################################################')
+    #print('Plot result########################################################################################################################################################################################################################')
     
     writer = SummaryWriter(log_dir="testlogs/lightning_logs/images/0")
     
@@ -262,9 +266,9 @@ if(True):
     c_sum = []
 
     fig, axs = plt.subplots(2, 2)
-    fig.set_size_inches(64, 48)
+    fig.set_size_inches(32, 24)
 
-    en_stat = pc.get_enroll_x_vec(en_xv, en_label)
+    en_stat = pc.get_x_vec_stat(en_xv, en_label)
     new_stat_obj = pc.lda(en_stat)
     x, y, c = get_scatter_plot_data(new_stat_obj)
     x_sum.append(x)
@@ -273,7 +277,7 @@ if(True):
     axs[0,0].scatter(x, y, c=c)
     axs[0,0].title.set_text('Enrollment Data')
 
-    te_stat = pc.get_test_x_vec(te_xv, te_label)
+    te_stat = pc.get_x_vec_stat(te_xv, te_label)
     new_stat_obj = pc.lda(te_stat)
     x, y, c = get_scatter_plot_data(new_stat_obj)
     x_sum.append(x)
@@ -284,7 +288,7 @@ if(True):
     
     axs[1,0].scatter(x_sum, y_sum, c=c_sum)
     axs[1,0].title.set_text('Enrollment + Test Data')
-    
+
     ente_xv = np.zeros((en_xv.shape[0]*2, en_xv.shape[1]))
     ente_xv[:en_xv.shape[0]] = en_xv
     ente_xv[-te_xv.shape[0]:] = te_xv
@@ -292,7 +296,7 @@ if(True):
     ente_label[:en_label.shape[0]] = en_label
     ente_label[-te_label.shape[0]:] = te_label
 
-    ente_stat = pc.get_test_x_vec(ente_xv, ente_label)
+    ente_stat = pc.get_x_vec_stat(ente_xv, ente_label)
     new_stat_obj = pc.lda(ente_stat)
     x, y, c = get_scatter_plot_data(new_stat_obj)
     x_sum.append(x)
@@ -303,20 +307,36 @@ if(True):
 
     writer.add_figure('scatter_plot_before_training', plt.gcf())
 
+    tsne = TSNE(2)
+    tsne_result = tsne.fit_transform(ente_xv)
 
+    tsne_result_df = pd.DataFrame({'tsne_1': tsne_result[:,0], 'tsne_2': tsne_result[:,1], 'label': ente_label})
+    fig, ax = plt.subplots(1)
+    fig.set_size_inches(16, 12)
+    sns.scatterplot(x='tsne_1', y='tsne_2', hue='label', data=tsne_result_df, ax=ax, s=80)
+    lim = (tsne_result.min()-5, tsne_result.max()+5)
+    ax.set_xlim(lim)
+    ax.set_ylim(lim)
+    ax.set_aspect('equal')
+    ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.0)
+
+    writer.add_figure('scatter_plot_TSNE_before_training', plt.gcf())
+
+
+
+    A = np.linalg.inv(plda.Sigma)
+    for i, (e, t)in enumerate(zip(en_xv, te_xv)):
+        en_xv[i,:] = np.dot(A, (e-plda.mean))
+        te_xv[i,:] = np.dot(A, (t-plda.mean))
 
     x_sum = []
     y_sum = []
     c_sum = []
 
-    for i, (e, t)in enumerate(zip(en_xv, te_xv)):
-        en_xv[i,:] = np.dot(plda.Sigma, e)
-        te_xv[i,:] = np.dot(plda.Sigma, t)
-
     fig, axs = plt.subplots(2, 2)
-    fig.set_size_inches(64, 48)
+    fig.set_size_inches(32, 24)
 
-    en_stat = pc.get_enroll_x_vec(en_xv, en_label)
+    en_stat = pc.get_x_vec_stat(en_xv, en_label)
     new_stat_obj = pc.lda(en_stat)
     x, y, c = get_scatter_plot_data(new_stat_obj)
     x_sum.append(x)
@@ -325,7 +345,7 @@ if(True):
     axs[0,0].scatter(x, y, c=c)
     axs[0,0].title.set_text('Enrollment Data')
 
-    te_stat = pc.get_test_x_vec(te_xv, te_label)
+    te_stat = pc.get_x_vec_stat(te_xv, te_label)
     new_stat_obj = pc.lda(te_stat)
     x, y, c = get_scatter_plot_data(new_stat_obj)
     x_sum.append(x)
@@ -336,7 +356,7 @@ if(True):
     
     axs[1,0].scatter(x_sum, y_sum, c=c_sum)
     axs[1,0].title.set_text('Enrollment + Test Data')
-    
+
     ente_xv = np.zeros((en_xv.shape[0]*2, en_xv.shape[1]))
     ente_xv[:en_xv.shape[0]] = en_xv
     ente_xv[-te_xv.shape[0]:] = te_xv
@@ -344,7 +364,7 @@ if(True):
     ente_label[:en_label.shape[0]] = en_label
     ente_label[-te_label.shape[0]:] = te_label
 
-    ente_stat = pc.get_test_x_vec(ente_xv, ente_label)
+    ente_stat = pc.get_x_vec_stat(ente_xv, ente_label)
     new_stat_obj = pc.lda(ente_stat)
     x, y, c = get_scatter_plot_data(new_stat_obj)
     x_sum.append(x)
@@ -354,6 +374,21 @@ if(True):
     axs[1,1].title.set_text('Enrollment + Test Data new evaluation')
 
     writer.add_figure('scatter_plot_after_training', plt.gcf())
+
+    tsne = TSNE(2)
+    tsne_result = tsne.fit_transform(ente_xv)
+
+    tsne_result_df = pd.DataFrame({'tsne_1': tsne_result[:,0], 'tsne_2': tsne_result[:,1], 'label': ente_label})
+    fig, ax = plt.subplots(1)
+    fig.set_size_inches(16, 12)
+    sns.scatterplot(x='tsne_1', y='tsne_2', hue='label', data=tsne_result_df, ax=ax, s=80)
+    lim = (tsne_result.min()-5, tsne_result.max()+5)
+    ax.set_xlim(lim)
+    ax.set_ylim(lim)
+    ax.set_aspect('equal')
+    ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.0)
+
+    writer.add_figure('scatter_plot_TSNE_after_training', plt.gcf())
 
     writer.close()
 
@@ -367,8 +402,8 @@ if(True):
 # en_xv, en_label = sklearn.utils.shuffle(en_xv, en_label)
 # te_xv, te_label = sklearn.utils.shuffle(te_xv, te_label)
 
-en_stat = pc.get_enroll_x_vec(en_xv, ['id'+str(i) for i in range(en_xv.shape[0])])
-te_stat = pc.get_test_x_vec(te_xv, ['id'+str(i) for i in range(te_xv.shape[0])])
+en_stat = pc.get_x_vec_stat(en_xv, ['id'+str(i) for i in range(en_xv.shape[0])])
+te_stat = pc.get_x_vec_stat(te_xv, ['id'+str(i) for i in range(te_xv.shape[0])])
 
 # Testing plda
 print('testing plda')

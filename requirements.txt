@@ -49,6 +49,7 @@ ruamel.yaml==0.17.21
 ruamel.yaml.clib==0.2.6
 scikit-learn==1.1.1
 scipy==1.8.1
+seaborn==0.12.0
 sentencepiece==0.1.96
 six==1.16.0
 sklearn==0.0
@@ -61,6 +62,7 @@ torch==1.11.0
 torch-tb-profiler==0.4.0
 torchaudio==0.11.0
 torchmetrics==0.9.1
+torchvision==0.12.0
 tqdm==4.64.0
 typing-extensions==4.2.0
 urllib3==1.26.9
