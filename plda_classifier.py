@@ -80,35 +80,19 @@ def train_plda(plda, xvectors_stat):
     plda.plda(xvectors_stat)
     return plda
 
-def get_enroll_x_vec(en_xv, en_id):
-    # Get number of train_utterances and their dimension
-    en_N = en_xv.shape[0]
-    print('N enroll utt:', en_N)
+def get_x_vec_stat(xv, id):
+    # Get number of utterances and their dimension
+    N = xv.shape[0]
 
     # Define arrays neccessary for special stat object
-    en_sgs = [str(en_id[i]) for i in range(en_N)]
-    en_sets = np.array(en_sgs, dtype="|O")
-    en_s = np.array([None] * en_N)
-    en_stat0 = np.array([[1.0]]* en_N)
+    sgs = [str(id[i]) for i in range(N)]
+    sets = np.array(sgs, dtype="|O")
+    s = np.array([None] * N)
+    stat0 = np.array([[1.0]]* N)
 
     # Define special stat object
-    en_stat = StatObject_SB(modelset=en_sets, segset=en_sets, start=en_s, stop=en_s, stat0=en_stat0, stat1=en_xv)
+    en_stat = StatObject_SB(modelset=sets, segset=sets, start=s, stop=s, stat0=stat0, stat1=xv)
     return en_stat
-
-def get_test_x_vec(te_xv, te_id):
-    # Get number of train_utterances and their dimension
-    te_N = te_xv.shape[0]
-    print('N test utt:', te_N)
-
-    # Define arrays neccessary for special stat object
-    te_sgs = [str(te_id[i]) for i in range(te_N)]
-    te_sets = np.array(te_sgs, dtype="|O")
-    te_s = np.array([None] * te_N)
-    te_stat0 = np.array([[1.0]]* te_N)
-
-    # Define special stat object
-    te_stat = StatObject_SB(modelset=te_sets, segset=te_sets, start=te_s, stop=te_s, stat0=te_stat0, stat1=te_xv)
-    return te_stat
 
 def plda_scores(plda, en_stat, te_stat):
     # Define special object for plda scoring
