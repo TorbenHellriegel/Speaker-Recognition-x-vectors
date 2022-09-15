@@ -109,10 +109,6 @@ class XVectorModel(pl.LightningModule):
         accuracy = self.accuracy(outputs['val_preds'], outputs['val_labels'])
         self.log('val_step_acc', self.accuracy)
         return {'loss': outputs['loss'], 'acc': accuracy}
-
-    def validation_epoch_end(self, outputs):
-        #TODO figure out how to plot 2in1
-        todo=0
     
     def test_step(self, batch, batch_index):
         samples, labels, id = batch
@@ -232,7 +228,6 @@ if __name__ == "__main__":
 
         # Generate x_vec stat objects
         print('generating x_vec stat objects')
-        #x_vec_train, x_label_train, x_id_train = sklearn.utils.shuffle(x_vec_train, x_label_train, x_id_train)###TODO comment out and in to compare different results in plda_test
         tr_stat = pc.get_train_x_vec(x_vec_train, x_label_train, x_id_train)
 
         # Training plda (or load pretrained plda)
@@ -253,7 +248,7 @@ if __name__ == "__main__":
         # Testing plda
         print('testing plda')
         if(not train_plda):
-            plda = pc.load_plda('plda/plda_v2.pickle')
+            plda = pc.load_plda('plda/plda_v3.pickle')
         score.test_plda(plda, config.data_folder_path + '/VoxCeleb/veri_test2.txt')
 
         # Calculating EER and minDCF
@@ -267,11 +262,13 @@ if __name__ == "__main__":
 
         pc.save_plda(score, 'plda_score_v1')
 
-    plda = pc.load_plda('plda/plda_v2.pickle')
-    score = pc.load_plda('plda/plda_score_v1.pickle')
-    score.plot_images(tb_logger.experiment, plda)
+    # plda = pc.load_plda('plda/plda_v3.pickle')
+    # score = pc.load_plda('plda/plda_score_v1.pickle')
+    # score.plot_images(tb_logger.experiment, plda)
 
-    print('DONE')
+    print('DONE') #TODO TODO TODO chech the audio of similar different examples
+    #TODO TODO TODO remove duplicates from en_xv and te_xv
+    #TODO TODO TODO figure out WTF I am doing wrong with the dimensionality reduction
 '''
 Notes:
 

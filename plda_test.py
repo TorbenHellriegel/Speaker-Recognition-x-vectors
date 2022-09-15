@@ -28,9 +28,6 @@ en_label = np.random.random_integers(0, 10, 50)
 te_xv = np.random.rand(50, 15)
 te_label = np.random.random_integers(0, 10, 50)'''
 
-#en_xv, en_label = sklearn.utils.shuffle(en_xv, en_label)###TODO comment out and in to compare different results in plda_test
-#te_xv, te_label = sklearn.utils.shuffle(te_xv, te_label)###TODO comment out and in to compare different results in plda_test
-
 # Generate x_vec stat objects
 print('generating x_vec stat objects')
 tr_stat = pc.get_train_x_vec(x_vec_train, x_label_train, x_label_train)
@@ -76,8 +73,6 @@ min_dcf, min_dcf_th = pc.minDCF(torch.tensor(positive_scores), torch.tensor(nega
 print('minDCF: ', min_dcf)
 print('threshold: ', min_dcf_th)
 
-#print('DONE NORMAL CODE########################################################################################################################################################################################################################')
-
 def get_scatter_plot_data(new_stat_obj):
     x = np.array(new_stat_obj.stat1[:, 0])
     y = np.array(new_stat_obj.stat1[:, 1])
@@ -90,94 +85,7 @@ def get_scatter_plot_data(new_stat_obj):
     c = np.array(c)
     return x, y, c
 
-if(False):
-    print('plda.mean', '  (shape: ', plda.mean.shape, ')')
-    print(plda.mean)
-    print('plda.F', '  (shape: ', plda.F.shape, ')')
-    print(plda.F)
-    print('plda.Sigma', '  (shape: ', plda.Sigma.shape, ')')
-    print(plda.Sigma)
-
-if(False):
-    print('Functional Tests########################################################################################################################################################################################################################')
-
-    print('en_label', '  (shape: ', en_label.shape, ')')
-    print(en_label)
-    print('te_label', '  (shape: ', te_label.shape, ')')
-    print(te_label)
-    print('en_stat.stat1', '  (shape: ', en_stat.stat1.shape, ')')
-    print(en_stat.stat1)
-    print('te_stat.stat1', '  (shape: ', te_stat.stat1.shape, ')')
-    print(te_stat.stat1)
-
-    # print('scores_plda.scoremat', '  (shape: ', scores_plda.scoremat.shape, ')')
-    # print(scores_plda.scoremat)
-    print('scores_plda.scoremask', '  (shape: ', np.array(scores_plda.scoremask, dtype=np.int32).shape, ')')
-    print(np.array(scores_plda.scoremask, dtype=np.int32))
-
-    sm_scores = scores_plda.scoremat[scores_plda.scoremask]
-
-    print('scoremask scores', sm_scores)
-    print('scoremask min score', np.min(sm_scores))
-    print('scoremask mean score', np.mean(sm_scores))
-    print('scoremask max score', np.max(sm_scores))
-    print('scoremask abs min score', np.min(np.abs(sm_scores)))
-    print('scoremask abs mean score', np.mean(np.abs(sm_scores)))
-    print('scoremask abs max score', np.max(np.abs(sm_scores)))
-
-    print('my scores', scores)
-    print('my min score', np.min(scores))
-    print('my mean score', np.mean(scores))
-    print('my max score', np.max(scores))
-    print('my abs min score', np.min(np.abs(scores)))
-    print('my abs mean score', np.mean(np.abs(scores)))
-    print('my abs max score', np.max(np.abs(scores)))
-
-if(False):
-    print('Shuffle Tests########################################################################################################################################################################################################################')
-
-    te_xv, te_label = sklearn.utils.shuffle(te_xv, te_label)
-    te_sets, te_stat = pc.get_x_vec_stat(te_xv)
-
-    scores_plda = pc.test_plda(plda, en_sets, en_stat, te_sets, te_stat)
-    mask = np.array(np.diag(np.diag(np.ones(scores_plda.scoremat.shape, dtype=np.int32))), dtype=bool)
-    scores = scores_plda.scoremat[mask]
-
-    print('en_label', '  (shape: ', en_label.shape, ')')
-    print(en_label)
-    print('te_label', '  (shape: ', te_label.shape, ')')
-    print(te_label)
-    print('en_stat.stat1', '  (shape: ', en_stat.stat1.shape, ')')
-    print(en_stat.stat1)
-    print('te_stat.stat1', '  (shape: ', te_stat.stat1.shape, ')')
-    print(te_stat.stat1)
-
-    print('scores_plda.scoremat', '  (shape: ', scores_plda.scoremat.shape, ')')
-    print(scores_plda.scoremat)
-    print('scores_plda.scoremask', '  (shape: ', np.array(scores_plda.scoremask, dtype=np.int32).shape, ')')
-    print(np.array(scores_plda.scoremask, dtype=np.int32))
-
-    sm_scores = scores_plda.scoremat[scores_plda.scoremask]
-
-    print('scoremask scores', sm_scores)
-    print('scoremask min score', np.min(sm_scores))
-    print('scoremask mean score', np.mean(sm_scores))
-    print('scoremask max score', np.max(sm_scores))
-    print('scoremask abs min score', np.min(np.abs(sm_scores)))
-    print('scoremask abs mean score', np.mean(np.abs(sm_scores)))
-    print('scoremask abs max score', np.max(np.abs(sm_scores)))
-
-    print('my scores', scores)
-    print('my min score', np.min(scores))
-    print('my mean score', np.mean(scores))
-    print('my max score', np.max(scores))
-    print('my abs min score', np.min(np.abs(scores)))
-    print('my abs mean score', np.mean(np.abs(scores)))
-    print('my abs max score', np.max(np.abs(scores)))
- 
 if(True):
-    #print('Plot result########################################################################################################################################################################################################################')
-    
     writer = SummaryWriter(log_dir="testlogs/lightning_logs/images/0")
     
     scoremat_norm = np.array(scores_plda.scoremat)
@@ -197,13 +105,13 @@ if(True):
     img[2] = np.array([scoremat_norm])
     writer.add_image('score_matrix', img, 0)
 
-    # ll_positive = np.where(scores_plda.scoremat >= 0, 1, 0)
-    # ll_negative = np.where(scores_plda.scoremat < 0, 1, 0)
-    # print('score_matrix_log_likelihood')
-    # img = np.zeros((3, scoremat_norm.shape[0], scoremat_norm.shape[1]))
-    # img[0] = np.array([scoremat_norm]*ll_negative)
-    # img[1] = np.array([scoremat_norm]*ll_positive)
-    # writer.add_image('score_matrix_log_likelihood', img, 0)
+    ll_positive = np.where(scores_plda.scoremat >= 0, 1, 0)
+    ll_negative = np.where(scores_plda.scoremat < 0, 1, 0)
+    print('score_matrix_log_likelihood')
+    img = np.zeros((3, scoremat_norm.shape[0], scoremat_norm.shape[1]))
+    img[0] = np.array([scoremat_norm]*ll_negative)
+    img[1] = np.array([scoremat_norm]*ll_positive)
+    writer.add_image('score_matrix_log_likelihood', img, 0)
 
     img = np.zeros((3, scoremat_norm.shape[0], scoremat_norm.shape[1]))
     img[1] = np.array([positive_scores_mask])

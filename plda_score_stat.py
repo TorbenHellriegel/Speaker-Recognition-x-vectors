@@ -4,15 +4,15 @@ import pandas as pd
 import seaborn as sns
 import torch
 from sklearn.manifold import TSNE
-import sklearn
+
 import plda_classifier as pc
 
 
 class plda_score_stat_object():
     def __init__(self, x_vectors_test):
         self.x_vectors_test = x_vectors_test
-        self.x_id_test = np.array(x_vectors_test.iloc[:, 1])
-        self.x_vec_test = np.array([np.array(x_vec[1:-1].split(), dtype=np.float64) for x_vec in x_vectors_test.iloc[:, 3]])
+        self.x_id_test = np.array(self.x_vectors_test.iloc[:, 1])
+        self.x_vec_test = np.array([np.array(x_vec[1:-1].split(), dtype=np.float64) for x_vec in self.x_vectors_test.iloc[:, 3]])
 
         self.en_stat = pc.get_x_vec_stat(self.x_vec_test, self.x_id_test)
         self.te_stat = pc.get_x_vec_stat(self.x_vec_test, self.x_id_test)
@@ -28,10 +28,13 @@ class plda_score_stat_object():
         self.min_dcf = 0
         self.min_dcf_th = 0
 
-        self.en_xv = []
-        self.en_label = []
-        self.te_xv = []
-        self.te_label = []
+        self.checked_en_xv = []
+        self.checked_en_label = []
+        self.checked_te_xv = []
+        self.checked_te_label = []
+
+        self.checked_en_xv_latent_space = []
+        self.checked_te_xv_latent_space = []
 
     def test_plda(self, plda, veri_test_file_path):
         self.plda_scores = pc.plda_scores(plda, self.en_stat, self.te_stat)
@@ -44,12 +47,12 @@ class plda_score_stat_object():
             test_id = pair.split(" ")[2].strip()
 
             i = int(np.where(self.plda_scores.modelset == enrol_id)[0][0])
-            self.en_xv.append(np.array(self.x_vectors_test.loc[self.x_vectors_test['id'] == enrol_id, 'xvector'].item()[1:-1].split(), dtype=np.float64))
-            self.en_label.append(int(enrol_id.split(".")[0].split("/")[0][2:]))
+            self.checked_en_xv.append(np.array(self.x_vectors_test.loc[self.x_vectors_test['id'] == enrol_id, 'xvector'].item()[1:-1].split(), dtype=np.float64))
+            self.checked_en_label.append(int(enrol_id.split(".")[0].split("/")[0][2:]))
 
             j = int(np.where(self.plda_scores.segset == test_id)[0][0])
-            self.te_xv.append(np.array(self.x_vectors_test.loc[self.x_vectors_test['id'] == test_id, 'xvector'].item()[1:-1].split(), dtype=np.float64))
-            self.te_label.append(int(test_id.split(".")[0].split("/")[0][2:]))
+            self.checked_te_xv.append(np.array(self.x_vectors_test.loc[self.x_vectors_test['id'] == test_id, 'xvector'].item()[1:-1].split(), dtype=np.float64))
+            self.checked_te_label.append(int(test_id.split(".")[0].split("/")[0][2:]))
             
             current_score = float(self.plda_scores.scoremat[i,j])
             if(is_match):
@@ -59,10 +62,10 @@ class plda_score_stat_object():
                 self.negative_scores.append(current_score)
                 self.negative_scores_mask[i,j] = 1
                     
-        self.en_xv = np.array(self.en_xv)
-        self.en_label = np.array(self.en_label)
-        self.te_xv = np.array(self.te_xv)
-        self.te_label = np.array(self.te_label)
+        self.checked_en_xv = np.array(self.checked_en_xv)
+        self.checked_en_label = np.array(self.checked_en_label)
+        self.checked_te_xv = np.array(self.checked_te_xv)
+        self.checked_te_label = np.array(self.checked_te_label)
 
     def calc_eer_mindcf(self):
         self.eer, self.eer_th = pc.EER(torch.tensor(self.positive_scores), torch.tensor(self.negative_scores))
@@ -164,12 +167,12 @@ class plda_score_stat_object():
             c /= np.max(c)
             return x, y, c
     
-        ente_xv = np.zeros((self.en_xv.shape[0]*2, self.en_xv.shape[1]))
-        ente_xv[:self.en_xv.shape[0]] = self.en_xv
-        ente_xv[-self.te_xv.shape[0]:] = self.te_xv
-        ente_label = np.zeros(self.en_label.shape[0]*2)
-        ente_label[:self.en_label.shape[0]] = self.en_label
-        ente_label[-self.te_label.shape[0]:] = self.te_label
+        ente_xv = np.zeros((self.checked_en_xv.shape[0]*2, self.checked_en_xv.shape[1]))
+        ente_xv[:self.checked_en_xv.shape[0]] = self.checked_en_xv
+        ente_xv[-self.checked_te_xv.shape[0]:] = self.checked_te_xv
+        ente_label = np.zeros(self.checked_en_label.shape[0]*2)
+        ente_label[:self.checked_en_label.shape[0]] = self.checked_en_label
+        ente_label[-self.checked_te_label.shape[0]:] = self.checked_te_label
 
         '''print('scatter_plot_before_training')
         x_sum = []
@@ -179,7 +182,7 @@ class plda_score_stat_object():
         fig, axs = plt.subplots(2, 2)
         fig.set_size_inches(32, 24)
 
-        en_stat = pc.get_x_vec_stat(self.en_xv, self.en_label)
+        en_stat = pc.get_x_vec_stat(self.checked_en_xv, self.checked_en_label)
         new_stat_obj = pc.lda(en_stat)
         x, y, c = get_scatter_plot_data(new_stat_obj)
         x_sum.append(x)
@@ -188,7 +191,7 @@ class plda_score_stat_object():
         axs[0,0].scatter(x, y, c=c)
         axs[0,0].title.set_text('Enrollment Data')
 
-        te_stat = pc.get_x_vec_stat(self.te_xv, self.te_label)
+        te_stat = pc.get_x_vec_stat(self.checked_te_xv, self.checked_te_label)
         new_stat_obj = pc.lda(te_stat)
         x, y, c = get_scatter_plot_data(new_stat_obj)
         x_sum.append(x)
@@ -245,19 +248,21 @@ class plda_score_stat_object():
 
 
 
+        self.checked_en_xv_latent_space = np.zeros_like(self.checked_en_xv)
+        self.checked_te_xv_latent_space = np.zeros_like(self.checked_te_xv)
         A = np.linalg.inv(plda.Sigma)
-        for i, (e, t)in enumerate(zip(self.en_xv, self.te_xv)):
-            self.en_xv[i,:] = np.dot(A, (e-plda.mean))
-            self.te_xv[i,:] = np.dot(A, (t-plda.mean))
+        for i, (e, t)in enumerate(zip(self.checked_en_xv, self.checked_te_xv)):
+            self.checked_en_xv_latent_space[i,:] = np.dot(A, (e-plda.mean))
+            self.checked_te_xv_latent_space[i,:] = np.dot(A, (t-plda.mean))
 
 
     
-        ente_xv = np.zeros((self.en_xv.shape[0]*2, self.en_xv.shape[1]))
-        ente_xv[:self.en_xv.shape[0]] = self.en_xv
-        ente_xv[-self.te_xv.shape[0]:] = self.te_xv
-        ente_label = np.zeros(self.en_label.shape[0]*2)
-        ente_label[:self.en_label.shape[0]] = self.en_label
-        ente_label[-self.te_label.shape[0]:] = self.te_label
+        ente_xv = np.zeros((self.checked_en_xv_latent_space.shape[0]*2, self.checked_en_xv_latent_space.shape[1]))
+        ente_xv[:self.checked_en_xv_latent_space.shape[0]] = self.checked_en_xv_latent_space
+        ente_xv[-self.checked_te_xv_latent_space.shape[0]:] = self.checked_te_xv_latent_space
+        ente_label = np.zeros(self.checked_en_label.shape[0]*2)
+        ente_label[:self.checked_en_label.shape[0]] = self.checked_en_label
+        ente_label[-self.checked_te_label.shape[0]:] = self.checked_te_label
 
         '''print('scatter_plot_after_training')
         x_sum = []
@@ -267,7 +272,7 @@ class plda_score_stat_object():
         fig, axs = plt.subplots(2, 2)
         fig.set_size_inches(32, 24)
 
-        en_stat = pc.get_x_vec_stat(self.en_xv, self.en_label)
+        en_stat = pc.get_x_vec_stat(self.checked_en_xv, self.checked_en_label)
         new_stat_obj = pc.lda(en_stat)
         x, y, c = get_scatter_plot_data(new_stat_obj)
         x_sum.append(x)
@@ -276,7 +281,7 @@ class plda_score_stat_object():
         axs[0,0].scatter(x, y, c=c)
         axs[0,0].title.set_text('Enrollment Data')
 
-        te_stat = pc.get_x_vec_stat(self.te_xv, self.te_label)
+        te_stat = pc.get_x_vec_stat(self.checked_te_xv, self.checked_te_label)
         new_stat_obj = pc.lda(te_stat)
         x, y, c = get_scatter_plot_data(new_stat_obj)
         x_sum.append(x)
