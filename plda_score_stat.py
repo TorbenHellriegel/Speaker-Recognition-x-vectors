@@ -66,7 +66,7 @@ class plda_score_stat_object():
 
     def calc_eer_mindcf(self):
         self.eer, self.eer_th = pc.EER(torch.tensor(self.positive_scores), torch.tensor(self.negative_scores))
-        self.min_dcf, self.min_dcf_th = pc.minDCF(torch.tensor(self.positive_scores), torch.tensor(self.negative_scores))
+        self.min_dcf, self.min_dcf_th = pc.minDCF(torch.tensor(self.positive_scores), torch.tensor(self.negative_scores), p_target=0.01)
 
     def plot_images(self, writer, plda):
         print('generating images for tensorboard')
@@ -87,6 +87,14 @@ class plda_score_stat_object():
         img[1] = np.array([scoremat_norm])
         img[2] = np.array([scoremat_norm])
         writer.add_image('score_matrix', img, 0)
+
+        ll_positive = np.where(self.plda_scores.scoremat >= 0, 1, 0)
+        ll_negative = np.where(self.plda_scores.scoremat < 0, 1, 0)
+        print('score_matrix_log_likelihood')
+        img = np.zeros((3, scoremat_norm.shape[0], scoremat_norm.shape[1]))
+        img[0] = np.array([scoremat_norm]*ll_negative)
+        img[1] = np.array([scoremat_norm]*ll_positive)
+        writer.add_image('score_matrix_log_likelihood', img, 0)
 
         print('ground_truth')
         img = np.zeros((3, scoremat_norm.shape[0], scoremat_norm.shape[1]))

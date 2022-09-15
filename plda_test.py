@@ -41,8 +41,6 @@ te_stat = pc.get_x_vec_stat(te_xv, ['id'+str(i) for i in range(te_xv.shape[0])])
 print('training plda')
 plda = pc.setup_plda(rank_f=10)
 plda = pc.train_plda(plda, tr_stat)
-pc.save_plda(plda, 'plda_test')
-#plda = pc.load_plda('plda/plda_test.pickle')
 
 # Testing plda
 print('testing plda')
@@ -74,7 +72,7 @@ print('threshold: ', eer_th)
 
 # Calculating minDCF
 print('calculating minDCF')
-min_dcf, min_dcf_th = pc.minDCF(torch.tensor(positive_scores), torch.tensor(negative_scores))
+min_dcf, min_dcf_th = pc.minDCF(torch.tensor(positive_scores), torch.tensor(negative_scores), p_target=0.01)
 print('minDCF: ', min_dcf)
 print('threshold: ', min_dcf_th)
 
@@ -198,6 +196,14 @@ if(True):
     img[1] = np.array([scoremat_norm])
     img[2] = np.array([scoremat_norm])
     writer.add_image('score_matrix', img, 0)
+
+    # ll_positive = np.where(scores_plda.scoremat >= 0, 1, 0)
+    # ll_negative = np.where(scores_plda.scoremat < 0, 1, 0)
+    # print('score_matrix_log_likelihood')
+    # img = np.zeros((3, scoremat_norm.shape[0], scoremat_norm.shape[1]))
+    # img[0] = np.array([scoremat_norm]*ll_negative)
+    # img[1] = np.array([scoremat_norm]*ll_positive)
+    # writer.add_image('score_matrix_log_likelihood', img, 0)
 
     img = np.zeros((3, scoremat_norm.shape[0], scoremat_norm.shape[1]))
     img[1] = np.array([positive_scores_mask])
