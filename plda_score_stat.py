@@ -4,7 +4,7 @@ import pandas as pd
 import seaborn as sns
 import torch
 from sklearn.manifold import TSNE
-
+import sklearn
 import plda_classifier as pc
 
 
@@ -69,28 +69,32 @@ class plda_score_stat_object():
         self.min_dcf, self.min_dcf_th = pc.minDCF(torch.tensor(self.positive_scores), torch.tensor(self.negative_scores))
 
     def plot_images(self, writer, plda):
+        print('generating images for tensorboard')
         scoremat_norm = np.array(self.plda_scores.scoremat)
         scoremat_norm -= np.min(scoremat_norm)
         scoremat_norm /= np.max(scoremat_norm)
 
-        print('generating images for tensorboard')
+        '''print('score_mask')
         img = np.zeros((3, self.plda_scores.scoremask.shape[0], self.plda_scores.scoremask.shape[1]))
         img[0] = np.array([self.plda_scores.scoremask])
         img[1] = np.array([self.plda_scores.scoremask])
         img[2] = np.array([self.plda_scores.scoremask])
-        writer.add_image('score_mask', img, 0)
+        writer.add_image('score_mask', img, 0)'''
 
+        print('score_matrix')
         img = np.zeros((3, scoremat_norm.shape[0], scoremat_norm.shape[1]))
         img[0] = np.array([scoremat_norm])
         img[1] = np.array([scoremat_norm])
         img[2] = np.array([scoremat_norm])
         writer.add_image('score_matrix', img, 0)
 
+        print('ground_truth')
         img = np.zeros((3, scoremat_norm.shape[0], scoremat_norm.shape[1]))
         img[1] = np.array([self.positive_scores_mask])
         img[0] = np.array([self.negative_scores_mask])
         writer.add_image('ground_truth', img, 0)
 
+        print('ground_truth_scores')
         img = np.zeros((3, scoremat_norm.shape[0], scoremat_norm.shape[1]))
         img[1] = np.array([scoremat_norm*self.positive_scores_mask])
         img[0] = np.array([scoremat_norm*self.negative_scores_mask])
@@ -104,6 +108,7 @@ class plda_score_stat_object():
         min_dcf_prediction_positive = np.where(checked_values >= self.min_dcf_th, 1, 0) * checked_values_map
         min_dcf_prediction_negative = np.where(checked_values < self.min_dcf_th, 1, 0) * checked_values_map
     
+        print('prediction_eer_min_dcf')
         img = np.ones((3, scoremat_norm.shape[0], scoremat_norm.shape[1]*2+5))
         img[1,:,:checked_values.shape[1]] = eer_prediction_positive
         img[0,:,:checked_values.shape[1]] = eer_prediction_negative
@@ -113,6 +118,7 @@ class plda_score_stat_object():
         img[2,:,-checked_values.shape[1]:] = 0
         writer.add_image('prediction_eer_min_dcf', img, 0)
     
+        '''print('prediction_scores_eer_min_dcf')
         img = np.ones((3, scoremat_norm.shape[0], scoremat_norm.shape[1]*2+5))
         img[1,:,:checked_values.shape[1]] = eer_prediction_positive * scoremat_norm
         img[0,:,:checked_values.shape[1]] = eer_prediction_negative * scoremat_norm
@@ -120,8 +126,9 @@ class plda_score_stat_object():
         img[0,:,-checked_values.shape[1]:] = min_dcf_prediction_negative * scoremat_norm
         img[2,:,:checked_values.shape[1]] = 0
         img[2,:,-checked_values.shape[1]:] = 0
-        writer.add_image('prediction_scores_eer_min_dcf', img, 0)
+        writer.add_image('prediction_scores_eer_min_dcf', img, 0)'''
     
+        print('correct_prediction_eer_min_dcf')
         img = np.ones((3, scoremat_norm.shape[0], scoremat_norm.shape[1]*2+5))
         img[1,:,:checked_values.shape[1]] = eer_prediction_positive * self.positive_scores_mask
         img[0,:,:checked_values.shape[1]] = eer_prediction_negative * self.negative_scores_mask
@@ -131,6 +138,7 @@ class plda_score_stat_object():
         img[2,:,-checked_values.shape[1]:] = 0
         writer.add_image('correct_prediction_eer_min_dcf', img, 0)
     
+        print('false_prediction_eer_min_dcf')
         img = np.ones((3, scoremat_norm.shape[0], scoremat_norm.shape[1]*2+5))
         img[1,:,:checked_values.shape[1]] = eer_prediction_positive * self.negative_scores_mask
         img[0,:,:checked_values.shape[1]] = eer_prediction_negative * self.positive_scores_mask
@@ -147,7 +155,15 @@ class plda_score_stat_object():
             c -= np.min(c)-1
             c /= np.max(c)
             return x, y, c
+    
+        ente_xv = np.zeros((self.en_xv.shape[0]*2, self.en_xv.shape[1]))
+        ente_xv[:self.en_xv.shape[0]] = self.en_xv
+        ente_xv[-self.te_xv.shape[0]:] = self.te_xv
+        ente_label = np.zeros(self.en_label.shape[0]*2)
+        ente_label[:self.en_label.shape[0]] = self.en_label
+        ente_label[-self.te_label.shape[0]:] = self.te_label
 
+        '''print('scatter_plot_before_training')
         x_sum = []
         y_sum = []
         c_sum = []
@@ -175,13 +191,6 @@ class plda_score_stat_object():
         
         axs[1,0].scatter(x_sum, y_sum, c=c_sum)
         axs[1,0].title.set_text('Enrollment + Test Data')
-    
-        ente_xv = np.zeros((self.en_xv.shape[0]*2, self.en_xv.shape[1]))
-        ente_xv[:self.en_xv.shape[0]] = self.en_xv
-        ente_xv[-self.te_xv.shape[0]:] = self.te_xv
-        ente_label = np.zeros(self.en_label.shape[0]*2)
-        ente_label[:self.en_label.shape[0]] = self.en_label
-        ente_label[-self.te_label.shape[0]:] = self.te_label
 
         ente_stat = pc.get_x_vec_stat(ente_xv, ente_label)
         new_stat_obj = pc.lda(ente_stat)
@@ -194,13 +203,30 @@ class plda_score_stat_object():
 
         writer.add_figure('scatter_plot_before_training', plt.gcf())
 
+        print('scatter_plot_PCA_before_training')
+        pca = sklearn.decomposition.PCA(n_components=2)
+        pca_result = pca.fit_transform(sklearn.preprocessing.StandardScaler().fit_transform(ente_xv))
+
+        pca_result_df = pd.DataFrame({'pca_1': pca_result[:,0], 'pca_2': pca_result[:,1], 'label': ente_label})
+        fig, ax = plt.subplots(1)
+        fig.set_size_inches(16, 12)
+        sns.scatterplot(x='pca_1', y='pca_2', hue='label', palette=sns.color_palette("hls", 40), data=pca_result_df, ax=ax, s=80)
+        lim = (pca_result.min()-5, pca_result.max()+5)
+        ax.set_xlim(lim)
+        ax.set_ylim(lim)
+        ax.set_aspect('equal')
+        ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.0)
+
+        writer.add_figure('scatter_plot_PCA_before_training', plt.gcf())'''
+
+        print('scatter_plot_TSNE_before_training')
         tsne = TSNE(2)
         tsne_result = tsne.fit_transform(ente_xv)
 
         tsne_result_df = pd.DataFrame({'tsne_1': tsne_result[:,0], 'tsne_2': tsne_result[:,1], 'label': ente_label})
         fig, ax = plt.subplots(1)
         fig.set_size_inches(16, 12)
-        sns.scatterplot(x='tsne_1', y='tsne_2', hue='label', data=tsne_result_df, ax=ax, s=80)
+        sns.scatterplot(x='tsne_1', y='tsne_2', hue='label', palette=sns.color_palette("hls", 40), data=tsne_result_df, ax=ax, s=80)
         lim = (tsne_result.min()-5, tsne_result.max()+5)
         ax.set_xlim(lim)
         ax.set_ylim(lim)
@@ -216,6 +242,16 @@ class plda_score_stat_object():
             self.en_xv[i,:] = np.dot(A, (e-plda.mean))
             self.te_xv[i,:] = np.dot(A, (t-plda.mean))
 
+
+    
+        ente_xv = np.zeros((self.en_xv.shape[0]*2, self.en_xv.shape[1]))
+        ente_xv[:self.en_xv.shape[0]] = self.en_xv
+        ente_xv[-self.te_xv.shape[0]:] = self.te_xv
+        ente_label = np.zeros(self.en_label.shape[0]*2)
+        ente_label[:self.en_label.shape[0]] = self.en_label
+        ente_label[-self.te_label.shape[0]:] = self.te_label
+
+        '''print('scatter_plot_after_training')
         x_sum = []
         y_sum = []
         c_sum = []
@@ -243,13 +279,6 @@ class plda_score_stat_object():
         
         axs[1,0].scatter(x_sum, y_sum, c=c_sum)
         axs[1,0].title.set_text('Enrollment + Test Data')
-    
-        ente_xv = np.zeros((self.en_xv.shape[0]*2, self.en_xv.shape[1]))
-        ente_xv[:self.en_xv.shape[0]] = self.en_xv
-        ente_xv[-self.te_xv.shape[0]:] = self.te_xv
-        ente_label = np.zeros(self.en_label.shape[0]*2)
-        ente_label[:self.en_label.shape[0]] = self.en_label
-        ente_label[-self.te_label.shape[0]:] = self.te_label
 
         ente_stat = pc.get_x_vec_stat(ente_xv, ente_label)
         new_stat_obj = pc.lda(ente_stat)
@@ -262,13 +291,31 @@ class plda_score_stat_object():
 
         writer.add_figure('scatter_plot_after_training', plt.gcf())
 
+        print('scatter_plot_PCA_after_training')
+        pca = sklearn.decomposition.PCA(n_components=2)
+        pca_result = pca.fit_transform(sklearn.preprocessing.StandardScaler().fit_transform(ente_xv))
+
+        pca_result_df = pd.DataFrame({'pca_1': pca_result[:,0], 'pca_2': pca_result[:,1], 'label': ente_label})
+        fig, ax = plt.subplots(1)
+        fig.set_size_inches(16, 12)
+        sns.color_palette("hls", 8)
+        sns.scatterplot(x='pca_1', y='pca_2', hue='label', palette=sns.color_palette("hls", 40), data=pca_result_df, ax=ax, s=80)
+        lim = (pca_result.min()-5, pca_result.max()+5)
+        ax.set_xlim(lim)
+        ax.set_ylim(lim)
+        ax.set_aspect('equal')
+        ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.0)
+
+        writer.add_figure('scatter_plot_PCA_after_training', plt.gcf())'''
+
+        print('scatter_plot_TSNE_after_training')
         tsne = TSNE(2)
         tsne_result = tsne.fit_transform(ente_xv)
 
         tsne_result_df = pd.DataFrame({'tsne_1': tsne_result[:,0], 'tsne_2': tsne_result[:,1], 'label': ente_label})
         fig, ax = plt.subplots(1)
         fig.set_size_inches(16, 12)
-        sns.scatterplot(x='tsne_1', y='tsne_2', hue='label', data=tsne_result_df, ax=ax, s=80)
+        sns.scatterplot(x='tsne_1', y='tsne_2', hue='label', palette=sns.color_palette("hls", 40), data=tsne_result_df, ax=ax, s=80)
         lim = (tsne_result.min()-5, tsne_result.max()+5)
         ax.set_xlim(lim)
         ax.set_ylim(lim)

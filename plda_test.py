@@ -313,7 +313,7 @@ if(True):
     tsne_result_df = pd.DataFrame({'tsne_1': tsne_result[:,0], 'tsne_2': tsne_result[:,1], 'label': ente_label})
     fig, ax = plt.subplots(1)
     fig.set_size_inches(16, 12)
-    sns.scatterplot(x='tsne_1', y='tsne_2', hue='label', data=tsne_result_df, ax=ax, s=80)
+    sns.scatterplot(x='tsne_1', y='tsne_2', hue='label', palette="deep", data=tsne_result_df, ax=ax, s=80)
     lim = (tsne_result.min()-5, tsne_result.max()+5)
     ax.set_xlim(lim)
     ax.set_ylim(lim)
@@ -322,12 +322,30 @@ if(True):
 
     writer.add_figure('scatter_plot_TSNE_before_training', plt.gcf())
 
+    pca = sklearn.decomposition.PCA(n_components=2)
+    pca.fit(sklearn.preprocessing.StandardScaler().fit_transform(tr_stat.stat1))
+    pca_result = pca.transform(sklearn.preprocessing.StandardScaler().fit_transform(ente_xv))
+
+    pca_result_df = pd.DataFrame({'pca_1': pca_result[:,0], 'pca_2': pca_result[:,1], 'label': ente_label})
+    fig, ax = plt.subplots(1)
+    fig.set_size_inches(16, 12)
+    sns.scatterplot(x='pca_1', y='pca_2', hue='label', palette="deep", data=pca_result_df, ax=ax, s=80)
+    lim = (pca_result.min()-5, pca_result.max()+5)
+    ax.set_xlim(lim)
+    ax.set_ylim(lim)
+    ax.set_aspect('equal')
+    ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.0)
+
+    writer.add_figure('scatter_plot_PCA_before_training', plt.gcf())
+
 
 
     A = np.linalg.inv(plda.Sigma)
     for i, (e, t)in enumerate(zip(en_xv, te_xv)):
         en_xv[i,:] = np.dot(A, (e-plda.mean))
         te_xv[i,:] = np.dot(A, (t-plda.mean))
+
+
 
     x_sum = []
     y_sum = []
@@ -381,7 +399,7 @@ if(True):
     tsne_result_df = pd.DataFrame({'tsne_1': tsne_result[:,0], 'tsne_2': tsne_result[:,1], 'label': ente_label})
     fig, ax = plt.subplots(1)
     fig.set_size_inches(16, 12)
-    sns.scatterplot(x='tsne_1', y='tsne_2', hue='label', data=tsne_result_df, ax=ax, s=80)
+    sns.scatterplot(x='tsne_1', y='tsne_2', hue='label', palette="deep", data=tsne_result_df, ax=ax, s=80)
     lim = (tsne_result.min()-5, tsne_result.max()+5)
     ax.set_xlim(lim)
     ax.set_ylim(lim)
@@ -390,92 +408,22 @@ if(True):
 
     writer.add_figure('scatter_plot_TSNE_after_training', plt.gcf())
 
+    pca = sklearn.decomposition.PCA(n_components=2)
+    pca.fit(sklearn.preprocessing.StandardScaler().fit_transform(tr_stat.stat1))
+    pca_result = pca.transform(sklearn.preprocessing.StandardScaler().fit_transform(ente_xv))
+
+    pca_result_df = pd.DataFrame({'pca_1': pca_result[:,0], 'pca_2': pca_result[:,1], 'label': ente_label})
+    fig, ax = plt.subplots(1)
+    fig.set_size_inches(16, 12)
+    sns.scatterplot(x='pca_1', y='pca_2', hue='label', palette="deep", data=pca_result_df, ax=ax, s=80)
+    lim = (pca_result.min()-5, pca_result.max()+5)
+    ax.set_xlim(lim)
+    ax.set_ylim(lim)
+    ax.set_aspect('equal')
+    ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.0)
+
+    writer.add_figure('scatter_plot_PCA_after_training', plt.gcf())
+
     writer.close()
-
-'''
-# for i, x in enumerate(scores_plda.scoremat):
-#     print(en_label[i], x)
-    
-# print(en_label)
-# print(te_label)
-
-# en_xv, en_label = sklearn.utils.shuffle(en_xv, en_label)
-# te_xv, te_label = sklearn.utils.shuffle(te_xv, te_label)
-
-en_stat = pc.get_x_vec_stat(en_xv, ['id'+str(i) for i in range(en_xv.shape[0])])
-te_stat = pc.get_x_vec_stat(te_xv, ['id'+str(i) for i in range(te_xv.shape[0])])
-
-# Testing plda
-print('testing plda')
-scores_plda = pc.test_plda(plda, en_stat, te_stat) #TODO test if i can calculate the result myself by using the matrix in plda.F
-
-# Dividing scores into positive and negative
-positive_scores = []
-negative_scores = []
-for i, en in enumerate(en_label):
-    for j, te in enumerate(te_label):
-        if(scores_plda.scoremask[i,j]):
-            if(en == te):
-                positive_scores.append(1)
-                negative_scores.append(0)
-            else:
-                positive_scores.append(0)
-                negative_scores.append(1)
-        else:
-            positive_scores.append(0)
-            negative_scores.append(0)
-
-positive_scores_mask = np.array(positive_scores, dtype=bool)
-negative_scores_mask = np.array(negative_scores, dtype=bool)
-positive_scores_mask = np.reshape(positive_scores_mask, (len(en_label),len(te_label)))
-negative_scores_mask = np.reshape(negative_scores_mask, (len(en_label),len(te_label)))
-positive_scores = scores_plda.scoremat[positive_scores_mask]
-negative_scores = scores_plda.scoremat[negative_scores_mask]
-
-# Calculating EER
-eer, th = pc.EER(torch.tensor(positive_scores), torch.tensor(negative_scores))
-
-print('EER: ', eer)
-print('threshold: ', th)
-
-# TODO minDCF
-#min_dcf, th = minDCF( torch.tensor(positive_scores), torch.tensor(negative_scores))
-
-img = np.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
-img[0] = np.array([scores_plda.scoremat])
-writer.add_image('scores2', img, 0)
-
-img = np.zeros((3, scores_plda.scoremask.shape[0], scores_plda.scoremask.shape[1]))
-img[0] = np.array([scores_plda.scoremask])
-writer.add_image('scoremask2', img, 0)
-    
-img = np.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
-img[1] = np.array([scores_plda.scoremat*positive_scores_mask])
-img[0] = np.array([scores_plda.scoremat*negative_scores_mask])
-writer.add_image('ground_truth2', img, 0)
-
-new_mask = np.zeros_like(scores_plda.scoremat)
-new_mask_inv = np.zeros_like(scores_plda.scoremat)
-for i, score in np.ndenumerate(scores_plda.scoremat):
-    if(score >= th):
-        new_mask[i] = 1
-    else:
-        new_mask_inv[i] = 1
-
-img = np.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
-img[1] = np.array([scores_plda.scoremat*new_mask])
-img[0] = np.array([scores_plda.scoremat*new_mask_inv])
-writer.add_image('prediction2', img, 0)
-
-img = np.zeros((3, scores_plda.scoremat.shape[0], scores_plda.scoremat.shape[1]))
-img[1] = np.array([positive_scores_mask*new_mask])
-img[0] = np.array([negative_scores_mask*new_mask_inv])
-writer.add_image('correct_prediction2', img, 0)
-
-# for i, x in enumerate(scores_plda.scoremat):
-#     print(en_label[i], x)
-    
-# print(en_label)
-# print(te_label)'''
 
 print('done')
