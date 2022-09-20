@@ -172,7 +172,7 @@ class plda_score_stat_object():
         img[2,:,-checked_values.shape[1]:] = 0
         writer.add_image('false_prediction_eer_min_dcf', img, 0)
 
-        def generate_scatter_plot(x, y, label):
+        def generate_scatter_plot(x, y, label, plot_name):
             df = pd.DataFrame({'x': x, 'y': y, 'label': label})
             fig, ax = plt.subplots(1)
             fig.set_size_inches(16, 12)
@@ -183,39 +183,40 @@ class plda_score_stat_object():
             ax.set_ylim(limy)
             ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
             ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.0)
+            ax.title.set_text(plot_name)
 
         print('scatter_plot_LDA_before_training')
         new_stat = pc.get_x_vec_stat(self.checked_xvec, self.checked_label)
         new_stat = pc.lda(new_stat)
-        generate_scatter_plot(new_stat.stat1[:, 0], new_stat.stat1[:, 1], self.checked_label)
+        generate_scatter_plot(new_stat.stat1[:, 0], new_stat.stat1[:, 1], self.checked_label, 'scatter_plot_LDA_before_training')
         writer.add_figure('scatter_plot_LDA_before_training', plt.gcf())
 
         print('scatter_plot_PCA_before_training')
         pca = sklearn.decomposition.PCA(n_components=2)
         pca_result = pca.fit_transform(sklearn.preprocessing.StandardScaler().fit_transform(self.checked_xvec))
-        generate_scatter_plot(pca_result[:,0], pca_result[:,1], self.checked_label)
+        generate_scatter_plot(pca_result[:,0], pca_result[:,1], self.checked_label, 'scatter_plot_PCA_before_training')
         writer.add_figure('scatter_plot_PCA_before_training', plt.gcf())
 
         print('scatter_plot_TSNE_before_training')
         tsne = TSNE(2)
         tsne_result = tsne.fit_transform(self.checked_xvec)
-        generate_scatter_plot(tsne_result[:,0], tsne_result[:,1], self.checked_label)
+        generate_scatter_plot(tsne_result[:,0], tsne_result[:,1], self.checked_label, 'scatter_plot_TSNE_before_training')
         writer.add_figure('scatter_plot_TSNE_before_training', plt.gcf())
 
         print('scatter_plot_LDA_after_training')
         new_stat = pc.get_x_vec_stat(self.checked_xvec_latent_space, self.checked_label)
         new_stat = pc.lda(new_stat)
-        generate_scatter_plot(new_stat.stat1[:, 0], new_stat.stat1[:, 1], self.checked_label)
+        generate_scatter_plot(new_stat.stat1[:, 0], new_stat.stat1[:, 1], self.checked_label, 'scatter_plot_LDA_after_training')
         writer.add_figure('scatter_plot_LDA_after_training', plt.gcf())
 
         print('scatter_plot_PCA_after_training')
         pca = sklearn.decomposition.PCA(n_components=2)
         pca_result = pca.fit_transform(sklearn.preprocessing.StandardScaler().fit_transform(self.checked_xvec_latent_space))
-        generate_scatter_plot(pca_result[:,0], pca_result[:,1], self.checked_label)
+        generate_scatter_plot(pca_result[:,0], pca_result[:,1], self.checked_label, 'scatter_plot_PCA_after_training')
         writer.add_figure('scatter_plot_PCA_after_training', plt.gcf())
 
         print('scatter_plot_TSNE_after_training')
         tsne = TSNE(2)
         tsne_result = tsne.fit_transform(self.checked_xvec_latent_space)
-        generate_scatter_plot(tsne_result[:,0], tsne_result[:,1], self.checked_label)
+        generate_scatter_plot(tsne_result[:,0], tsne_result[:,1], self.checked_label, 'scatter_plot_TSNE_after_training')
         writer.add_figure('scatter_plot_TSNE_after_training', plt.gcf())
