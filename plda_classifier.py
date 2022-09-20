@@ -122,7 +122,7 @@ def EER(positive_scores, negative_scores):
     return float(EER), float(thresholds[min_index])
 
 def minDCF(
-    positive_scores, negative_scores, c_miss=1.0, c_fa=1.0, p_target=0.01
+    positive_scores, negative_scores, c_miss=1.0, c_fa=1.0, p_target=0.5
 ):
     """Computes the minDCF metric normally used to evaluate speaker verification
     systems. The min_DCF is the minimum of the following C_det function computed

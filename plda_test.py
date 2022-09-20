@@ -69,7 +69,7 @@ print('threshold: ', eer_th)
 
 # Calculating minDCF
 print('calculating minDCF')
-min_dcf, min_dcf_th = pc.minDCF(torch.tensor(positive_scores), torch.tensor(negative_scores), p_target=0.01)
+min_dcf, min_dcf_th = pc.minDCF(torch.tensor(positive_scores), torch.tensor(negative_scores), p_target=0.5)
 print('minDCF: ', min_dcf)
 print('threshold: ', min_dcf_th)
 
