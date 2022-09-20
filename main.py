@@ -232,7 +232,7 @@ if __name__ == "__main__":
 
         # Training plda (or load pretrained plda)
         print('training plda')
-        plda = pc.setup_plda(rank_f=config.plda_rank_f)
+        plda = pc.setup_plda(rank_f=config.plda_rank_f, nb_iter=100)
         plda = pc.train_plda(plda, tr_stat)
         pc.save_plda(plda, 'plda_v3')
 
@@ -248,7 +248,7 @@ if __name__ == "__main__":
         # Testing plda
         print('testing plda')
         if(not train_plda):
-            plda = pc.load_plda('plda/plda_v3.pickle')
+            plda = pc.load_plda('plda/plda_v2.pickle')
         score.test_plda(plda, config.data_folder_path + '/VoxCeleb/veri_test2.txt')
 
         # Calculating EER and minDCF
@@ -260,14 +260,13 @@ if __name__ == "__main__":
         # Generating images for tensorboard
         score.plot_images(tb_logger.experiment, plda)
 
-        pc.save_plda(score, 'plda_score_v1')
+        pc.save_plda(score, 'plda_score_v2')
 
-    # plda = pc.load_plda('plda/plda_v3.pickle')
-    # score = pc.load_plda('plda/plda_score_v1.pickle')
-    # score.plot_images(tb_logger.experiment, plda)
+    plda = pc.load_plda('plda/plda_v2.pickle')
+    score = pc.load_plda('plda/plda_score_v1.pickle')
+    score.plot_images(tb_logger.experiment, plda)
 
     print('DONE') #TODO TODO TODO chech the audio of similar different examples
-    #TODO TODO TODO remove duplicates from en_xv and te_xv
     #TODO TODO TODO figure out WTF I am doing wrong with the dimensionality reduction
 '''
 Notes:
