@@ -1,4 +1,4 @@
-# Speaker-Recognition-x-vectors
+# Speaker-Recognition-using-x-vectors
 
 Work in progress...
 
