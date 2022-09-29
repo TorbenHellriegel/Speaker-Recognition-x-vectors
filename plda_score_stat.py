@@ -7,6 +7,160 @@ import sklearn
 import plda_classifier as pc
 from sklearn.manifold import TSNE
 
+
+from scipy.linalg import eigh
+def calc_scatter_matrices(X, Y):
+    """ See Equations (1) on p.532 of Ioffe 2006. """
+    assert len(X.shape) == 2
+    assert X.shape[0] == len(Y)
+
+    unique_labels = np.unique(Y)
+    labels = np.asarray(Y)
+
+    m = X.mean(axis=0)
+    N = X.shape[0]
+
+    cov_ks = []
+    m_ks = []
+    n_ks = []
+
+    for k in unique_labels:
+        bool_idxs = labels == k
+        X_k = X[bool_idxs]
+
+        m_ks.append(X_k.mean(axis=0))
+        n_ks.append(bool_idxs.sum())
+
+        cov_ks.append(np.cov(X_k.T))
+
+    n_ks = np.asarray(n_ks)
+    m_ks = np.asarray(m_ks)
+    m_ks_minus_m = m_ks - m
+    S_b = np.matmul(m_ks_minus_m.T * (n_ks / N), m_ks_minus_m)
+
+    S_w = np.asarray(cov_ks) * ((n_ks - 1) / N)[:, None, None]
+    S_w = np.sum(S_w, axis=0)
+
+    return S_b, S_w
+
+def calc_m(X):
+    """ See Fig. 2 on p.537 of Ioffe 2006. """
+    assert len(X.shape) == 2
+    return X.mean(axis=0)
+
+def calc_W(S_b, S_w):
+    """ See Fig. 2 on p.537 of Ioffe 2006. """
+    eigenvalues, eigenvectors = eigh(S_b, S_w)
+    return eigenvectors
+
+def calc_Lambda_b(S_b, W):
+    """ See Fig. 2 on p.537 of Ioffe 2006. """
+    return np.matmul(np.matmul(W.T, S_b), W)
+
+def calc_Lambda_b(S_b, W):
+    """ See Fig. 2 on p.537 of Ioffe 2006. """
+    return (W.T@ S_b)@ W
+
+def calc_Lambda_w(S_w, W):
+    """ See Fig. 2 on p.537 of Ioffe 2006. """
+    return np.matmul(np.matmul(W.T, S_w), W)
+
+def calc_Lambda_w(S_w, W):
+    """ See Fig. 2 on p.537 of Ioffe 2006. """
+    return (W.T@ S_w)@ W
+
+def calc_n_avg(Y):
+    """ This is the \"hack\" suggested in Fig 2 on p.537 of Ioffe 2006. """
+    unique = np.unique(Y)
+    return len(Y) / unique.shape[0]
+
+def calc_A(n_avg, Lambda_w, W):
+    """ See Fig. 2 on p.537 of Ioffe 2006. """
+    Lambda_w_diagonal = Lambda_w.diagonal()  # Should be diagonal matrix.
+    inv_W_T = np.linalg.inv(W.T)
+    return inv_W_T * (n_avg / (n_avg - 1) * Lambda_w_diagonal) ** .5
+
+
+def calc_Psi(Lambda_w, Lambda_b, n_avg):
+    """ See Fig. 2 on p.537 of Ioffe 2006. """
+    Lambda_w_diagonal = Lambda_w.diagonal()  # Should be diagonal matrix.
+    Lambda_b_diagonal = Lambda_b.diagonal()  # Should be diagonal matrix.
+    Psi = (n_avg - 1) / n_avg * Lambda_b_diagonal / Lambda_w_diagonal
+    Psi -= 1 / n_avg
+    Psi[Psi <= 0] = 0
+
+    return np.diag(Psi)
+
+def get_relevant_U_dims(Psi):
+    """ See Fig. 2 on p.537 of Ioffe 2006. """
+    relevant_dims = np.squeeze(np.argwhere(Psi.diagonal() != 0))
+    if relevant_dims.shape == ():
+        relevant_dims = relevant_dims.reshape(1,)
+    return relevant_dims
+
+def optimize_maximum_likelihood(X, labels):
+    """ Performs the optimization in Fig. 2 of p.537 of Ioffe 2006.
+
+    DESCRIPTION
+     - The main model parameters are `m`, `A`, and `Psi`.
+     - However, to improve the performance (speed and numerical stability)
+        of the plda.Model object,
+        inv_A and relevant_U_dims are also returned here.
+
+    ADDITIONAL NOTES
+     Be sure to test that np.cov(X.T) is full rank before running this.
+
+     Recall that there are 4 \"spaces\":
+      'D' (data) <---> 'X' (preprocessed) <---> 'U' (latent) <---> 'U_model'
+
+    ARGUMENTS
+     X  (numpy.ndarray), shape=(n_data, n_dimensions)
+       - Data in statistics format, i.e. row-wise.
+
+     labels  (list or numpy.ndarray), length=X.shape[0]
+       - Labels for the data in `X`.
+       - Must be sorted in the same order as `X`.
+
+    RETURNS
+     m  (numpy.ndarray), shape=X.shape[-1]
+       - The mean of the row vectors in X.
+       - This is the prior mean fitted via maximum likelihood.
+
+     A  (numpy.ndarray), shape=(X.shape[-1], X.shape[-1])
+       - Transformation from X space to the latent U space.
+
+     Psi  (numpy.ndarray), shape=(X.shape[-1], X.shape[-1])
+       - The covariance matrix of the prior distribution on
+          the category means in U space.
+
+     relevant_U_dims  (numpy.ndarray), shape=(len(np.unique(labels)) - 1,)
+       - The \"effective\" latent dimensions,
+          i.e. the ones that are actually used by the model.
+
+     inv_A  (numpy.ndarray), shape=A.shape
+       - The inverse of the matrix A.
+       - Transformation from the latent U space to the X space.
+    """
+    assert len(X.shape) == 2
+    assert X.shape[0] == len(labels)
+
+    m = X.mean(axis=0)
+
+    S_b, S_w = calc_scatter_matrices(X, labels)
+    W = calc_W(S_b, S_w)
+
+    Lambda_b = calc_Lambda_b(S_b, W)
+    Lambda_w = calc_Lambda_w(S_w, W)
+    n_avg = calc_n_avg(labels)
+
+    A = calc_A(n_avg, Lambda_w, W)
+    inv_A = np.linalg.inv(A)
+
+    Psi = calc_Psi(Lambda_w, Lambda_b, n_avg)
+    relevant_U_dims = get_relevant_U_dims(Psi)
+
+    return m, A, Psi, relevant_U_dims, inv_A
+
 class plda_score_stat_object():
     def __init__(self, x_vectors_test):
         self.x_vectors_test = x_vectors_test
@@ -76,8 +230,7 @@ class plda_score_stat_object():
         self.eer, self.eer_th = pc.EER(torch.tensor(self.positive_scores), torch.tensor(self.negative_scores))
         self.min_dcf, self.min_dcf_th = pc.minDCF(torch.tensor(self.positive_scores), torch.tensor(self.negative_scores), p_target=0.5)
 
-    def plot_images(self, writer, plda):
-        #TODO remove later
+    def plot_images(self, writer, plda):#, train_xvec, train_label):
         split_xvec = []
         split_label = []
         group_kfold = sklearn.model_selection.GroupKFold(n_splits=2)
@@ -102,12 +255,22 @@ class plda_score_stat_object():
             break
         split_xvec = np.array(split_xvec)
         split_label = np.array(split_label)
+        #TODO remove later
         self.checked_xvec = split_xvec[0]
         self.checked_label = split_label[0]
 
-        self.checked_xvec_latent_space = np.zeros_like(self.checked_xvec)
-        A_inv = np.linalg.pinv(plda.F)
-        self.checked_xvec_latent_space = (self.checked_xvec-plda.mean) @ A_inv.T
+        # F_inv = np.linalg.pinv(plda.F)
+        # data_temp = (self.checked_xvec-plda.mean) @ F_inv.T
+        
+        m, A, Psi, relevant_U_dims, inv_A = optimize_maximum_likelihood(self.checked_xvec, self.checked_label) #TODO change this! plotting works but is wrong
+
+        data_temp=np.matmul(self.checked_xvec - m, inv_A.T) #TODO calculate A from train data then transform before and after data with A and after data also with plda.F
+        self.checked_xvec_latent_space=data_temp[..., relevant_U_dims]
+
+        if(False):
+            self.checked_xvec_latent_space = np.zeros_like(self.checked_xvec)
+            A_inv = np.linalg.pinv(plda.F)
+            self.checked_xvec_latent_space = (data_temp-plda.mean) @ A_inv.T
         #TODO remove later
 
         print('generating images for tensorboard')

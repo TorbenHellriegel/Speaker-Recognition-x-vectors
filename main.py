@@ -155,7 +155,7 @@ if __name__ == "__main__":
 
     # Define model and trainer
     print('setting up model and trainer parameters')
-    config = Config(num_epochs=20, batch_size=16, checkpoint_path='lightning_logs/x_vector_v1_3/checkpoints/last.ckpt') #adjust batch size, epoch, etc. here
+    config = Config(num_epochs=25, batch_size=16, checkpoint_path='lightning_logs/x_vector_v1_5/checkpoints/last.ckpt') #adjust batch size, epoch, etc. here
 
     tb_logger = pl_loggers.TensorBoardLogger(save_dir="testlogs/")
     early_stopping_callback = EarlyStopping(monitor="val_step_loss", mode="min")
@@ -262,9 +262,16 @@ if __name__ == "__main__":
 
         pc.save_plda(score, 'plda_score_v2')
 
-    plda = pc.load_plda('plda/plda_v2.pickle')
-    score = pc.load_plda('plda/plda_score_v1.pickle')
-    score.plot_images(tb_logger.experiment, plda)
+
+
+    if(True):
+        # x_vectors_train = pd.read_csv('x_vectors/x_vector_train_v1.csv')
+        # train_label = np.array(x_vectors_train.iloc[:, 2], dtype=int)
+        # train_xvec = np.array([np.array(x_vec[1:-1].split(), dtype=np.float64) for x_vec in x_vectors_train.iloc[:, 3]])
+
+        plda = pc.load_plda('plda/plda_v2.pickle')
+        score = pc.load_plda('plda/plda_score_v1.pickle')
+        score.plot_images(tb_logger.experiment, plda)#, train_xvec, train_label)
 
     print('DONE') #TODO TODO TODO chech the audio of similar different examples
     #TODO TODO TODO figure out WTF I am doing wrong with the dimensionality reduction
