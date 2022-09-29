@@ -30,24 +30,21 @@ def add_with_certain_snr(sample, noise, min_snr_db=5, max_snr_db=20):
     return noisy_sample
 
 def MUSIC(sample):
-    path = random.choice(glob.glob('data/test/music*.wav'))
+    path = random.choice(glob.glob('data/test_augmentations/music*.wav'))
     rate, song = wavfile.read(path, np.dtype)
     song = resampy.resample(song, rate, 16000)
     song = cut_to_sec(song, 3)
     aug_sample = add_with_certain_snr(sample, song, min_snr_db=5, max_snr_db=15)
     aug_sample = aug_sample.astype(np.int16)
-    wavfile.write('data/test/voxcelebmusic.wav', 16000, aug_sample)
-
-    aug_sample = np.linalg.norm(aug_sample)
-    print(aug_sample)
+    wavfile.write('data/test_augmentations/voxcelebmusic.wav', 16000, aug_sample)
 
 def SPEECH(sample):
-    speaker_path = random.choice(glob.glob('data/test/speech*.wav'))
+    speaker_path = random.choice(glob.glob('data/test_augmentations/speech*.wav'))
     rate, speakers = wavfile.read(speaker_path, np.dtype)
     speakers = resampy.resample(speakers, rate, 16000)
     speakers = cut_to_sec(speakers, 3)
-    for i in range(3, 7):
-        speaker_path = random.choice(glob.glob('data/test/speech*.wav'))
+    for i in range(random.randint(2, 6)):
+        speaker_path = random.choice(glob.glob('data/test_augmentations/speech*.wav'))
         rate, speaker = wavfile.read(speaker_path, np.dtype)
         speaker = resampy.resample(speaker, rate, 16000)
         speaker = cut_to_sec(speaker, 3)
@@ -55,27 +52,21 @@ def SPEECH(sample):
         
     aug_sample = add_with_certain_snr(sample, speakers, min_snr_db=5, max_snr_db=10)
     aug_sample = aug_sample.astype(np.int16)
-    wavfile.write('data/test/voxcelebspeech.wav', 16000, aug_sample)
-
-    aug_sample = np.linalg.norm(aug_sample)
-    print(aug_sample)
+    wavfile.write('data/test_augmentations/voxcelebspeech.wav', 16000, aug_sample)
 
 def NOISE(sample):
     aug_sample = sample
-    for i in range(0, len(sample)-16000, 16000):
-        path = random.choice(glob.glob('data/test/noise*.wav'))
-        rate, noise = wavfile.read(path, np.dtype)
+    for i in range(3):
+        noise_path = random.choice(glob.glob('data/test_augmentations/noise*.wav'))
+        rate, noise = wavfile.read(noise_path, np.dtype)
         noise = resampy.resample(noise, rate, 16000)
         noise = cut_to_sec(noise, 1)
-        aug_sample[i:i+16000] = add_with_certain_snr(aug_sample[i:i+16000], noise, min_snr_db=0, max_snr_db=15)
+        sample[i*16000:(i+1)*16000] = add_with_certain_snr(sample[i*16000:(i+1)*16000], noise, min_snr_db=0, max_snr_db=15)
     aug_sample = aug_sample.astype(np.int16)
-    wavfile.write('data/test/voxcelebnoise.wav', 16000, aug_sample)
-
-    aug_sample = np.linalg.norm(aug_sample)
-    print(aug_sample)
+    wavfile.write('data/test_augmentations/voxcelebnoise.wav', 16000, aug_sample)
     
 def RIR(sample):
-    path = random.choice(glob.glob('data/test/Room*.wav'))
+    path = random.choice(glob.glob('data/test_augmentations/Room*.wav'))
     _, rir = wavfile.read(path, np.dtype)
 
     aug_sample = fftconvolve(sample, rir)
@@ -87,19 +78,19 @@ def RIR(sample):
     
     aug_sample = sample + aug_sample[:len(sample)] #add echo to sample
     aug_sample = aug_sample.astype(np.int16)
-    wavfile.write('data/test/voxcelebrir.wav', 16000, aug_sample)
-
-    aug_sample = np.linalg.norm(aug_sample)
-    print(aug_sample)
+    wavfile.write('data/test_augmentations/voxcelebrir.wav', 16000, aug_sample)
 
 #SAMPLE
-path = random.choice(glob.glob('data/test/vox0*.wav'))
+path = random.choice(glob.glob('data/test_augmentations/voxceleb*.wav'))
 rate, sample = wavfile.read(path, np.dtype)
 sample = resampy.resample(sample, rate, 16000)
 sample = cut_to_sec(sample, 3)
 rate = 16000
+wavfile.write('data/test_augmentations/voxceleb3sec.wav', 16000, sample)
 
 MUSIC(sample)
 SPEECH(sample)
 RIR(sample)
 NOISE(sample)
+
+print('done')
