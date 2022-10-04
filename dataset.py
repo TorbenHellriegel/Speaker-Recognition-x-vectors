@@ -129,7 +129,6 @@ class Dataset(Dataset):
 
     def augment_data(self, sample, augmentation):
         sample = self.cut_to_sec(sample, 3)
-        augmentation = random.choice(['music', 'speech', 'noise', 'rir'])
 
         if(augmentation == 'music'):
             aug_sample = self.augment_musan_music(sample)
@@ -208,7 +207,7 @@ class Dataset(Dataset):
             rate, noise = wavfile.read(noise_path, np.dtype)
             noise = resampy.resample(noise, rate, self.sampling_rate)
             noise = self.cut_to_sec(noise, 1)
-            sample[i*self.sampling_rate:(i+1)*self.sampling_rate] = self.add_with_certain_snr(sample[i*self.sampling_rate:(i+1)*self.sampling_rate], noise, min_snr_db=0, max_snr_db=15)
+            sample[i:i+self.sampling_rate] = self.add_with_certain_snr(sample[i:i+self.sampling_rate], noise, min_snr_db=0, max_snr_db=15)
 
         return sample
 
