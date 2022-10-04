@@ -254,8 +254,8 @@ class plda_score_stat_object():
                 break
             break
         split_xvec = np.array(split_xvec)
-        split_label = np.array(split_label)
-        #TODO remove later
+        split_label = np.array(split_label) #TODO utilize split in plotting
+        '''#TODO remove later
         self.checked_xvec = split_xvec[0]
         self.checked_label = split_label[0]
 
@@ -271,7 +271,7 @@ class plda_score_stat_object():
             self.checked_xvec_latent_space = np.zeros_like(self.checked_xvec)
             A_inv = np.linalg.pinv(plda.F)
             self.checked_xvec_latent_space = (data_temp-plda.mean) @ A_inv.T
-        #TODO remove later
+        #TODO remove later'''
 
         print('generating images for tensorboard')
         scoremat_norm = np.array(self.plda_scores.scoremat)

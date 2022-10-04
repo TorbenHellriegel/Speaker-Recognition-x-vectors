@@ -155,7 +155,7 @@ if __name__ == "__main__":
 
     # Define model and trainer
     print('setting up model and trainer parameters')
-    config = Config(num_epochs=25, batch_size=16, checkpoint_path='lightning_logs/x_vector_v1_5/checkpoints/last.ckpt') #adjust batch size, epoch, etc. here
+    config = Config(num_epochs=30, checkpoint_path='lightning_logs/x_vector_v1_5/checkpoints/last.ckpt') #adjust batch size, epoch, etc. here
 
     tb_logger = pl_loggers.TensorBoardLogger(save_dir="testlogs/")
     early_stopping_callback = EarlyStopping(monitor="val_step_loss", mode="min")
@@ -196,11 +196,11 @@ if __name__ == "__main__":
         if(train_x_vector_model):
             trainer.test(model)
             x_vector = pd.DataFrame(x_vector)
-            x_vector.to_csv('x_vectors/x_vector_train_v1.csv')
+            x_vector.to_csv('x_vectors/x_vector_train_v1_5.csv')
         elif(config.checkpoint_path != 'none'):
             trainer.test(model, ckpt_path=config.checkpoint_path)
             x_vector = pd.DataFrame(x_vector)
-            x_vector.to_csv('x_vectors/x_vector_train_v1.csv')
+            x_vector.to_csv('x_vectors/x_vector_train_v1_5.csv')
         else:
             print('could not extract train x-vectors')
 
@@ -209,11 +209,11 @@ if __name__ == "__main__":
         if(train_x_vector_model):
             trainer.test(model)
             x_vector = pd.DataFrame(x_vector)
-            x_vector.to_csv('x_vectors/x_vector_test_v2.csv')
+            x_vector.to_csv('x_vectors/x_vector_test_v1_5.csv')
         elif(config.checkpoint_path != 'none'):
             trainer.test(model, ckpt_path=config.checkpoint_path)
             x_vector = pd.DataFrame(x_vector)
-            x_vector.to_csv('x_vectors/x_vector_test_v2.csv')
+            x_vector.to_csv('x_vectors/x_vector_test_v1_5.csv')
         else:
             print('could not extract test x-vectors')
     
@@ -221,7 +221,7 @@ if __name__ == "__main__":
 
     if(train_plda):
         # Extracting the x-vectors, labels and id from the csv
-        x_vectors_train = pd.read_csv('x_vectors/x_vector_train_v1.csv')
+        x_vectors_train = pd.read_csv('x_vectors/x_vector_train_v1_5.csv')
         x_id_train = np.array(x_vectors_train.iloc[:, 1])
         x_label_train = np.array(x_vectors_train.iloc[:, 2], dtype=int)
         x_vec_train = np.array([np.array(x_vec[1:-1].split(), dtype=np.float64) for x_vec in x_vectors_train.iloc[:, 3]])
@@ -234,21 +234,21 @@ if __name__ == "__main__":
         print('training plda')
         plda = pc.setup_plda(rank_f=config.plda_rank_f, nb_iter=100)
         plda = pc.train_plda(plda, tr_stat)
-        pc.save_plda(plda, 'plda_v3')
+        pc.save_plda(plda, 'plda_v1_5')
 
 
 
     if(test_plda):
         # Extracting the x-vectors, labels and id from the csv
         print('loading x_vector data')
-        x_vectors_test = pd.read_csv('x_vectors/x_vector_test_v1_1.csv')
+        x_vectors_test = pd.read_csv('x_vectors/x_vector_test_v1_5.csv')
         x_vectors_test.columns = ['index', 'id', 'label', 'xvector']
         score = plda_score_stat_object(x_vectors_test)
 
         # Testing plda
         print('testing plda')
         if(not train_plda):
-            plda = pc.load_plda('plda/plda_v2.pickle')
+            plda = pc.load_plda('plda/plda_v1_5.pickle')
         score.test_plda(plda, config.data_folder_path + '/VoxCeleb/veri_test2.txt')
 
         # Calculating EER and minDCF
@@ -260,11 +260,11 @@ if __name__ == "__main__":
         # Generating images for tensorboard
         score.plot_images(tb_logger.experiment, plda)
 
-        pc.save_plda(score, 'plda_score_v2')
+        pc.save_plda(score, 'plda_score_v1_5')
 
 
 
-    if(True):
+    if(False):
         # x_vectors_train = pd.read_csv('x_vectors/x_vector_train_v1.csv')
         # train_label = np.array(x_vectors_train.iloc[:, 2], dtype=int)
         # train_xvec = np.array([np.array(x_vec[1:-1].split(), dtype=np.float64) for x_vec in x_vectors_train.iloc[:, 3]])
