@@ -269,12 +269,11 @@ if __name__ == "__main__":
         # train_label = np.array(x_vectors_train.iloc[:, 2], dtype=int)
         # train_xvec = np.array([np.array(x_vec[1:-1].split(), dtype=np.float64) for x_vec in x_vectors_train.iloc[:, 3]])
 
-        plda = pc.load_plda('plda/plda_v2.pickle')
-        score = pc.load_plda('plda/plda_score_v1.pickle')
+        plda = pc.load_plda('plda/plda_v1_5.pickle')
+        score = pc.load_plda('plda/plda_score_v1_5.pickle')
         score.plot_images(tb_logger.experiment, plda)#, train_xvec, train_label)
 
-    print('DONE') #TODO TODO TODO chech the audio of similar different examples
-    #TODO TODO TODO figure out WTF I am doing wrong with the dimensionality reduction
+    print('DONE')
 '''
 Notes:
 

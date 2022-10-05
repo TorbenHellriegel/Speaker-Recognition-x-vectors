@@ -4,7 +4,7 @@ import numpy as np
 
 xvec = pd.read_csv('x_vectors/x_vector_test_v1_1.csv')
 xvec.columns = ['index', 'id', 'label', 'xvector']
-plda = pc.load_plda('plda/plda_v2.pickle')
+plda = pc.load_plda('plda/plda_v1_1.pickle')
 
 x_id_test = np.array(xvec.iloc[:, 1])
 x_vec_test = np.array([np.array(x_vec[1:-1].split(), dtype=np.float64) for x_vec in xvec.iloc[:, 3]])
