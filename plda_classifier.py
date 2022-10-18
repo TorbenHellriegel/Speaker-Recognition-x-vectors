@@ -5,22 +5,26 @@ import torch
 from speechbrain.processing.PLDA_LDA import *
 
 
-def mean_same_speakers(test_xv, test_label):
-    te_xv = []
-    te_label = []
-    unique_label = np.unique(test_label)
-    for label in unique_label:
-        xv = []
-        for x, l in zip(test_xv, test_label):
-            if label == l:
-                xv.append(x)
-        te_xv.append(np.mean(xv, axis=0))
-        te_label.append(label)
-    te_xv = np.array(te_xv, dtype=np.float64)
-    te_label = np.array(te_label, dtype=np.int32)
-    return te_xv, te_label
-
 def get_train_x_vec(train_xv, train_label, x_id_train):
+    """
+    Generate a stat object for the training x-vectors.
+
+    Parameters
+    ----------
+    train_xv: ndarray
+        The x-vector
+        
+    train_label: int
+        The x-vectors label
+        
+    x_id_train: string
+        The x-vectors unique id
+
+    Returns
+    -------
+    xvectors_stat: obj
+        The x-vector stat object
+    """
     # Get number of train_utterances and their dimension
     N = train_xv.shape[0]
     print('N train utt:', N)
@@ -46,6 +50,22 @@ def train_plda(plda, xvectors_stat):
     return plda
 
 def get_x_vec_stat(xv, id):
+    """
+    Generate a stat object for the x-vectors.
+
+    Parameters
+    ----------
+    xv: ndarray
+        The x-vector
+        
+    id: int
+        The x-vectors unique id
+
+    Returns
+    -------
+    xv_stat: obj
+        The x-vector stat object
+    """
     # Get number of utterances and their dimension
     N = xv.shape[0]
 
@@ -56,8 +76,8 @@ def get_x_vec_stat(xv, id):
     stat0 = np.array([[1.0]]* N)
 
     # Define special stat object
-    en_stat = StatObject_SB(modelset=sets, segset=sets, start=s, stop=s, stat0=stat0, stat1=xv)
-    return en_stat
+    xv_stat = StatObject_SB(modelset=sets, segset=sets, start=s, stop=s, stat0=stat0, stat1=xv)
+    return xv_stat
 
 def plda_scores(plda, en_stat, te_stat):
     # Define special object for plda scoring
@@ -84,7 +104,7 @@ def EER(positive_scores, negative_scores):
     0.0
     Credit
     ------
-    code taken from : https://github.com/Hemanshu-Bhargav/august_speechbrain/blob/2933b2a5a83662e9c554ba15e94f4a9ad31527bc/speechbrain/utils/metric_stats.py#L455
+    Code taken from : https://github.com/Hemanshu-Bhargav/august_speechbrain/blob/2933b2a5a83662e9c554ba15e94f4a9ad31527bc/speechbrain/utils/metric_stats.py#L455
     """
 
     # Computing candidate thresholds

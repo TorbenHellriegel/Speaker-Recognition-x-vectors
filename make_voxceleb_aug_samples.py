@@ -124,7 +124,7 @@ def augment_musan_speech(sample):
     aug_sample = add_with_certain_snr(sample, speakers, min_snr_db=13, max_snr_db=20)
     return aug_sample
 
-def augment_musan_noise(sample): #TODO leave noise at 1 sec each or overlap?
+def augment_musan_noise(sample):
     musan_noise_path = 'data' + '/musan/noise/*/*.wav'
     #print('load sample: augmenting with musan noise')
     

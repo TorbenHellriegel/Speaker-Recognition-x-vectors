@@ -4,6 +4,10 @@ import torch.nn as nn
 
 class TdnnLayer(nn.Module):
     def __init__(self, input_size=24, output_size=512, context=[0], batch_norm=True, dropout_p=0.0):
+        """
+        TDNN as defined by https://www.danielpovey.com/files/2015_interspeech_multisplice.pdf
+        Structure inspired by https://github.com/cvqluu/TDNN/blob/master/tdnn.py
+        """
         super(TdnnLayer, self).__init__()
 
         self.input_size = input_size
@@ -38,7 +42,15 @@ class TdnnLayer(nn.Module):
 
 def get_time_context(x, c=[0]):
     """
-    TODO write doc
+    Returns x with the applied time context. For this the surrounding time frames are concatenated together.
+    For example an input of shape (100, 10) with context [-1,0,1] would become (98,30).
+    Visual example:
+    x=          c=          result=
+    [[1,2],                 
+    [3,4],                  [[1,2,3,4,5,6],
+    [5,6],      [-1,0,1]    [3,4,5,6,7,8],
+    [7,8],                  [5,6,7,8,9,0]]
+    [9,0]]                  
     """
     l = len(c) - 1
     xc =   [x[:, c[l]+cc:c[0]+cc, :]

@@ -186,6 +186,28 @@ class plda_score_stat_object():
         self.checked_xvec_latent_space = []
 
     def test_plda(self, plda, veri_test_file_path):
+        """
+        Tests the PLDA performance based on the VoxCeleb veri test files speaker pairings.
+
+        Parameters
+        ----------
+        PLDA: obj
+            The PLDA getting tested
+            
+        veri_test_file_path: string
+            The path to the VoxCeleb veri test file
+
+        Returns
+        -------
+        sample: tensor
+            The MFCC of the desires sample
+        
+        label: string
+            The label of the sample
+
+        id: string
+            The scource directory of the sample (unique for each seperate sample)
+        """
         self.plda_scores = pc.plda_scores(plda, self.en_stat, self.te_stat)
         self.positive_scores_mask = np.zeros_like(self.plda_scores.scoremat)
         self.negative_scores_mask = np.zeros_like(self.plda_scores.scoremat)
@@ -227,10 +249,20 @@ class plda_score_stat_object():
         self.checked_xvec_latent_space = (A_inv @ self.checked_xvec.T).T
 
     def calc_eer_mindcf(self):
+        """
+        Calculate the EER and minDCF.
+        """
         self.eer, self.eer_th = pc.EER(torch.tensor(self.positive_scores), torch.tensor(self.negative_scores))
         self.min_dcf, self.min_dcf_th = pc.minDCF(torch.tensor(self.positive_scores), torch.tensor(self.negative_scores), p_target=0.5)
 
-    def plot_images(self, writer, plda):#, train_xvec, train_label):
+    def plot_images(self, writer, plda):#, train_xvec, train_label): #TODO remove plda
+        """
+        Plot images for the given writer.
+
+        Parameters
+        ----------
+        writer: the writer the images are plotted for
+        """
         split_xvec = []
         split_label = []
         group_kfold = sklearn.model_selection.GroupKFold(n_splits=2)

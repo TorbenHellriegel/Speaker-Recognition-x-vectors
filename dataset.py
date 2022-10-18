@@ -14,7 +14,13 @@ from torch.utils.data import Dataset
 EPS = 1e-20
 
 class Dataset(Dataset):
-    def __init__(self, sampling_rate=16000, mfcc_numcep=24, mfcc_nfilt=26, mfcc_nfft=512, data_folder_path='data', augmentations_per_sample=2):
+    def __init__(self,
+                sampling_rate=16000,
+                mfcc_numcep=24,
+                mfcc_nfilt=26,
+                mfcc_nfft=512,
+                data_folder_path='data',
+                augmentations_per_sample=2):
         self.samples = []
         self.labels = []
 
@@ -36,6 +42,13 @@ class Dataset(Dataset):
         self.mfcc_nfft = mfcc_nfft
 
     def init_samples_and_labels(self):
+        """
+        This method initalizes the dataset by collectiong all available train and test data samples.
+        The train samples are randomly split into 90% train and 10% validation.
+        Even though all samples are collected only the currently active ones will be returned with get.
+        To set which samples are currently active call load_data(self, train=False, val=False, test=False)
+        and set the wanted samples to true
+        """
         vox_train_path = self.data_folder_path + '/VoxCeleb/vox1_dev_wav/*/*/*.wav'
         vox_test_path = self.data_folder_path + '/VoxCeleb/vox1_test_wav/*/*/*.wav'
 
@@ -88,16 +101,33 @@ class Dataset(Dataset):
         self.test_samples = list(np.array(test_samples))
         self.test_labels = list(np.array(test_labels))
 
-    # Returns the sample and class at the given index
-    # Can be called as dataset[i] and works with dataloader
     def __getitem__(self, index):
+        """
+        Returns the MFCC of the sample and class at the given index.
+
+        Parameters
+        ----------
+        index: int
+            The index of the desired sample
+
+        Returns
+        -------
+        sample: tensor
+            The MFCC of the desires sample
+        
+        label: string
+            The label of the sample
+
+        id: string
+            The scource directory of the sample (unique for each seperate sample)
+        """
         sample_path, augmentation = self.samples[index]
         rate, sample = wavfile.read(sample_path, np.dtype)
         sample = resampy.resample(sample, rate, self.sampling_rate)
 
         # Augment the sample with noise and/or reverbaraition
         augmented_sample = self.augment_data(sample, augmentation)
-        augmented_sample = mfcc(augmented_sample, self.sampling_rate, numcep=self.mfcc_numcep, nfilt=self.mfcc_nfilt, nfft=self.mfcc_nfft)#TODO figure out how mfcc works
+        augmented_sample = mfcc(augmented_sample, self.sampling_rate, numcep=self.mfcc_numcep, nfilt=self.mfcc_nfilt, nfft=self.mfcc_nfft)
 
         label = self.unique_labels.index(self.labels[index])
         id = '/'.join(sample_path.rsplit('/')[-3:])
@@ -105,9 +135,34 @@ class Dataset(Dataset):
         return torch.from_numpy(augmented_sample), label, id
 
     def __len__(self):
+        """
+        Returns the number of active samples.
+
+        Returns
+        -------
+        n_samples: int
+            The number of active samples
+        """
         return self.n_samples
 
     def load_data(self, train=False, val=False, test=False):
+        """
+        Loads the specified data to be active.
+
+        Parameters
+        ----------
+        train: bool
+            Set if the train samples are supposed to be active
+            Default = False
+            
+        val: bool
+            Set if the train samples are supposed to be active
+            Default = False
+            
+        test: bool
+            Set if the train samples are supposed to be active
+            Default = False
+        """
         self.samples = []
         self.labels = []
         self.n_samples = 0
@@ -128,6 +183,24 @@ class Dataset(Dataset):
         self.unique_labels = list(np.unique(self.labels))
 
     def augment_data(self, sample, augmentation):
+        """
+        Augment the normalized data sample with a given augmentation.
+        If the augmentation is not one of the accepted types returns the unaugmented sample.
+
+        Parameters
+        ----------
+        sample: ndarray
+            The sample that is supposed to be augmented
+            
+        augmentation: string
+            the type of augmentation
+            can be: {'music', 'speech', 'noise', 'rir'}
+
+        Returns
+        -------
+        aug_sample: ndarray
+            The normalized augmented sample
+        """
         sample = self.cut_to_sec(sample, 3)
 
         if(augmentation == 'music'):
@@ -147,6 +220,22 @@ class Dataset(Dataset):
         return aug_sample
 
     def cut_to_sec(self, sample, length):
+        """
+        Cuts or pads the sample to a certain length.
+
+        Parameters
+        ----------
+        sample: ndarray
+            The sample that is supposed to be cut
+            
+        length: int
+            The lenght in seconds the returned sample should have
+
+        Returns
+        -------
+        new_sample: ndarray
+            The sample with the specefied lenght
+        """
         if(len(sample) < self.sampling_rate*length):
             new_sample = np.pad(sample, (0, self.sampling_rate*length-len(sample)), 'constant', constant_values=(0, 0))
         else:
@@ -155,6 +244,30 @@ class Dataset(Dataset):
         return new_sample
 
     def add_with_certain_snr(self, sample, noise, min_snr_db=5, max_snr_db=20):
+        """
+        Adds the noise to the signal with a SNR randomly chosen between min_snr_db and max_snr_db.
+
+        Parameters
+        ----------
+        sample: ndarray
+            The sample that is supposed to be augmented
+            
+        noise: ndarray
+            The noise that is supposed augment the sample
+            
+        min_snr_db: int
+            The minimal SNR in decibil the returned sample should have
+            Default = 5
+            
+        max_snr_db: int
+            The maximal SNR in decibil the returned sample should have
+            Default = 20
+
+        Returns
+        -------
+        noisy_sample: ndarray
+            The sample with the added noise
+        """
         sample = sample.astype('int64')
         noise = noise.astype('int64')
 
@@ -168,6 +281,19 @@ class Dataset(Dataset):
         return noisy_sample
 
     def augment_musan_music(self, sample):
+        """
+        Applies background music from the musan dataset to the sample.
+
+        Parameters
+        ----------
+        sample: ndarray
+            The sample that is supposed to be augmented
+
+        Returns
+        -------
+        aug_sample: ndarray
+            The sample with the added noise
+        """
         musan_music_path = self.data_folder_path + '/musan/music/*/*.wav'
         #print('load sample: augmenting with musan music')
 
@@ -180,6 +306,20 @@ class Dataset(Dataset):
         return aug_sample
 
     def augment_musan_speech(self, sample):
+        """
+        Applies background speech from the musan dataset to the sample.
+        3-7 different speakers are added and used as background speech.
+
+        Parameters
+        ----------
+        sample: ndarray
+            The sample that is supposed to be augmented
+
+        Returns
+        -------
+        aug_sample: ndarray
+            The sample with the added noise
+        """
         musan_speech_path = self.data_folder_path + '/musan/speech/*/*.wav'
         #print('load sample: augmenting with musan speech')
 
@@ -198,7 +338,21 @@ class Dataset(Dataset):
         aug_sample = self.add_with_certain_snr(sample, speakers, min_snr_db=13, max_snr_db=20)
         return aug_sample
 
-    def augment_musan_noise(self, sample): #TODO leave noise at 1 sec each or overlap?
+    def augment_musan_noise(self, sample):
+        """
+        Applies background noise from the musan dataset to the sample.
+        A 1 sec noise clip is added to the sample at 1 sec intervals.
+
+        Parameters
+        ----------
+        sample: ndarray
+            The sample that is supposed to be augmented
+
+        Returns
+        -------
+        aug_sample: ndarray
+            The sample with the added noise
+        """
         musan_noise_path = self.data_folder_path + '/musan/noise/*/*.wav'
         #print('load sample: augmenting with musan noise')
         
@@ -212,6 +366,20 @@ class Dataset(Dataset):
         return sample
 
     def augment_rir(self, sample):
+        """
+        Applies reverbaration from the RIR dataset to the sample.
+        The Sample is convolved with a simulated room impulse response.
+
+        Parameters
+        ----------
+        sample: ndarray
+            The sample that is supposed to be augmented
+
+        Returns
+        -------
+        aug_sample: ndarray
+            The sample with the added noise
+        """
         rir_noise_path = self.data_folder_path + '/RIRS_NOISES/simulated_rirs/*/*/*.wav'
         #print('load sample: augmenting with rir')
 
