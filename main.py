@@ -218,7 +218,7 @@ if __name__ == "__main__":
 
 
     # Train the x-vector model
-    if(train_x_vector_model):
+    if(config.train_x_vector_model):
         print('training x-vector model')
         if(config.checkpoint_path == 'none'):
             trainer.fit(model)
@@ -228,12 +228,12 @@ if __name__ == "__main__":
 
 
     # Extract the x-vectors
-    if(extract_x_vectors):
+    if(config.extract_x_vectors):
         print('extracting x-vectors')
         # Extract the x-vectors for trainng the PLDA classifier and save to csv
         x_vector = []
         extract_mode = 'train'
-        if(train_x_vector_model):
+        if(config.train_x_vector_model):
             trainer.test(model)
             x_vector = pd.DataFrame(x_vector)
             x_vector.to_csv('x_vectors/x_vector_train_v1_5.csv')
@@ -247,7 +247,7 @@ if __name__ == "__main__":
         # Extract the x-vectors for testing the PLDA classifier and save to csv
         x_vector = []
         extract_mode = 'test'
-        if(train_x_vector_model):
+        if(config.train_x_vector_model):
             trainer.test(model)
             x_vector = pd.DataFrame(x_vector)
             x_vector.to_csv('x_vectors/x_vector_test_v1_5.csv')
@@ -260,7 +260,7 @@ if __name__ == "__main__":
     
 
 
-    if(train_plda):
+    if(config.train_plda):
         # Extract the x-vectors, labels and id from the csv
         x_vectors_train = pd.read_csv('x_vectors/x_vector_train_v1_5.csv')
         x_id_train = np.array(x_vectors_train.iloc[:, 1])
@@ -279,7 +279,7 @@ if __name__ == "__main__":
 
 
 
-    if(test_plda):
+    if(config.test_plda):
         # Extract the x-vectors, labels and id from the csv
         print('loading x_vector data')
         x_vectors_test = pd.read_csv('x_vectors/x_vector_test_v1_5.csv')
@@ -288,7 +288,7 @@ if __name__ == "__main__":
 
         # Test plda
         print('testing plda')
-        if(not train_plda):
+        if(not config.train_plda):
             plda = pc.load_plda('plda/plda_v1_5.pickle')
         score.test_plda(plda, config.data_folder_path + '/VoxCeleb/veri_test2.txt')
 
