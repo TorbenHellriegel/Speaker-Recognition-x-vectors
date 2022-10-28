@@ -1,4 +1,4 @@
-# Speaker Recognition using x vectors
+# Speaker Recognition using X-Vectors
 
 This is my speaker recognition implementation based on the x-vector system described in "X-Vectors: Robust DNN Embeddings for Speaker Recognition" by Snyder et al. I developed this program as part of my bachelor thesis. If you are interested in the theory of how this works, you can read the paper this implementation is based on here: <https://ieeexplore.ieee.org/document/8461375>
 
