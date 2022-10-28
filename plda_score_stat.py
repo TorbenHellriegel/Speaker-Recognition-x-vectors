@@ -2,12 +2,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-import torch
 import sklearn
-import plda_classifier as pc
+import torch
 from sklearn.manifold import TSNE
+from speechbrain.utils.metric_stats import EER, minDCF
 
+import plda_classifier as pc
 
+'''
 from scipy.linalg import eigh
 def calc_scatter_matrices(X, Y):
     """ See Equations (1) on p.532 of Ioffe 2006. """
@@ -159,7 +161,7 @@ def optimize_maximum_likelihood(X, labels):
     Psi = calc_Psi(Lambda_w, Lambda_b, n_avg)
     relevant_U_dims = get_relevant_U_dims(Psi)
 
-    return m, A, Psi, relevant_U_dims, inv_A
+    return m, A, Psi, relevant_U_dims, inv_A''' #TODO remove
 
 class plda_score_stat_object():
     def __init__(self, x_vectors_test):
@@ -183,7 +185,7 @@ class plda_score_stat_object():
 
         self.checked_xvec = []
         self.checked_label = []
-        self.checked_xvec_latent_space = []
+        # self.checked_xvec_latent_space = [] #TODO remove
 
     def test_plda(self, plda, veri_test_file_path):
         """
@@ -241,19 +243,19 @@ class plda_score_stat_object():
         self.checked_xvec = np.array(self.checked_xvec)
         self.checked_label = np.array(self.checked_label)
 
-        self.checked_xvec_latent_space = np.zeros_like(self.checked_xvec)
-        A_inv = np.linalg.pinv(plda.F) #TODO maybe sigma within wurzel
-        # for i, xvec in enumerate(self.checked_xvec):
-        #     x = np.array([(xvec-plda.mean)]).T
-        #     self.checked_xvec_latent_space[i,:] = A_inv @ x
-        self.checked_xvec_latent_space = (A_inv @ self.checked_xvec.T).T
+        # self.checked_xvec_latent_space = np.zeros_like(self.checked_xvec) #TODO remove
+        # A_inv = np.linalg.pinv(plda.F) #TODO maybe sigma within wurzel
+        # # for i, xvec in enumerate(self.checked_xvec):
+        # #     x = np.array([(xvec-plda.mean)]).T
+        # #     self.checked_xvec_latent_space[i,:] = A_inv @ x
+        # self.checked_xvec_latent_space = (A_inv @ self.checked_xvec.T).T
 
     def calc_eer_mindcf(self):
         """
         Calculate the EER and minDCF.
         """
-        self.eer, self.eer_th = pc.EER(torch.tensor(self.positive_scores), torch.tensor(self.negative_scores))
-        self.min_dcf, self.min_dcf_th = pc.minDCF(torch.tensor(self.positive_scores), torch.tensor(self.negative_scores), p_target=0.5)
+        self.eer, self.eer_th = EER(torch.tensor(self.positive_scores), torch.tensor(self.negative_scores))
+        self.min_dcf, self.min_dcf_th = minDCF(torch.tensor(self.positive_scores), torch.tensor(self.negative_scores), p_target=0.5)
 
     def plot_images(self, writer, plda):#, train_xvec, train_label): #TODO remove plda
         """
@@ -379,39 +381,40 @@ class plda_score_stat_object():
             ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
             ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.0)
             ax.title.set_text(plot_name)
+        
+        for i, (checked_xvec, checked_label) in enumerate(zip(split_xvec, split_label)):
+            print('scatter_plot_LDA'+str(i+1))
+            new_stat = pc.get_x_vec_stat(checked_xvec, checked_label)
+            new_stat = pc.lda(new_stat)
+            generate_scatter_plot(new_stat.stat1[:, 0], new_stat.stat1[:, 1], checked_label, 'scatter_plot_LDA'+str(i+1))
+            writer.add_figure('scatter_plot_LDA'+str(i+1), plt.gcf())
 
-        print('scatter_plot_LDA_before_training')
-        new_stat = pc.get_x_vec_stat(self.checked_xvec, self.checked_label)
-        new_stat = pc.lda(new_stat)
-        generate_scatter_plot(new_stat.stat1[:, 0], new_stat.stat1[:, 1], self.checked_label, 'scatter_plot_LDA_before_training')
-        writer.add_figure('scatter_plot_LDA_before_training', plt.gcf())
+            print('scatter_plot_PCA'+str(i+1))
+            pca = sklearn.decomposition.PCA(n_components=2)
+            pca_result = pca.fit_transform(sklearn.preprocessing.StandardScaler().fit_transform(checked_xvec))
+            generate_scatter_plot(pca_result[:,0], pca_result[:,1], checked_label, 'scatter_plot_PCA'+str(i+1))
+            writer.add_figure('scatter_plot_PCA'+str(i+1), plt.gcf())
 
-        print('scatter_plot_PCA_before_training')
-        pca = sklearn.decomposition.PCA(n_components=2)
-        pca_result = pca.fit_transform(sklearn.preprocessing.StandardScaler().fit_transform(self.checked_xvec))
-        generate_scatter_plot(pca_result[:,0], pca_result[:,1], self.checked_label, 'scatter_plot_PCA_before_training')
-        writer.add_figure('scatter_plot_PCA_before_training', plt.gcf())
+            print('scatter_plot_TSNE'+str(i+1))
+            tsne = TSNE(2)
+            tsne_result = tsne.fit_transform(checked_xvec)
+            generate_scatter_plot(tsne_result[:,0], tsne_result[:,1], checked_label, 'scatter_plot_TSNE'+str(i+1))
+            writer.add_figure('scatter_plot_TSNE'+str(i+1), plt.gcf())
 
-        print('scatter_plot_TSNE_before_training')
-        tsne = TSNE(2)
-        tsne_result = tsne.fit_transform(self.checked_xvec)
-        generate_scatter_plot(tsne_result[:,0], tsne_result[:,1], self.checked_label, 'scatter_plot_TSNE_before_training')
-        writer.add_figure('scatter_plot_TSNE_before_training', plt.gcf())
+        # print('scatter_plot_LDA_after_training') #TODO remove
+        # new_stat = pc.get_x_vec_stat(self.checked_xvec_latent_space, self.checked_label)
+        # new_stat = pc.lda(new_stat)
+        # generate_scatter_plot(new_stat.stat1[:, 0], new_stat.stat1[:, 1], self.checked_label, 'scatter_plot_LDA_after_training')
+        # writer.add_figure('scatter_plot_LDA_after_training', plt.gcf())
 
-        print('scatter_plot_LDA_after_training')
-        new_stat = pc.get_x_vec_stat(self.checked_xvec_latent_space, self.checked_label)
-        new_stat = pc.lda(new_stat)
-        generate_scatter_plot(new_stat.stat1[:, 0], new_stat.stat1[:, 1], self.checked_label, 'scatter_plot_LDA_after_training')
-        writer.add_figure('scatter_plot_LDA_after_training', plt.gcf())
+        # print('scatter_plot_PCA_after_training')
+        # pca = sklearn.decomposition.PCA(n_components=2)
+        # pca_result = pca.fit_transform(sklearn.preprocessing.StandardScaler().fit_transform(self.checked_xvec_latent_space))
+        # generate_scatter_plot(pca_result[:,0], pca_result[:,1], self.checked_label, 'scatter_plot_PCA_after_training')
+        # writer.add_figure('scatter_plot_PCA_after_training', plt.gcf())
 
-        print('scatter_plot_PCA_after_training')
-        pca = sklearn.decomposition.PCA(n_components=2)
-        pca_result = pca.fit_transform(sklearn.preprocessing.StandardScaler().fit_transform(self.checked_xvec_latent_space))
-        generate_scatter_plot(pca_result[:,0], pca_result[:,1], self.checked_label, 'scatter_plot_PCA_after_training')
-        writer.add_figure('scatter_plot_PCA_after_training', plt.gcf())
-
-        print('scatter_plot_TSNE_after_training')
-        tsne = TSNE(2)
-        tsne_result = tsne.fit_transform(self.checked_xvec_latent_space)
-        generate_scatter_plot(tsne_result[:,0], tsne_result[:,1], self.checked_label, 'scatter_plot_TSNE_after_training')
-        writer.add_figure('scatter_plot_TSNE_after_training', plt.gcf())
+        # print('scatter_plot_TSNE_after_training')
+        # tsne = TSNE(2)
+        # tsne_result = tsne.fit_transform(self.checked_xvec_latent_space)
+        # generate_scatter_plot(tsne_result[:,0], tsne_result[:,1], self.checked_label, 'scatter_plot_TSNE_after_training')
+        # writer.add_figure('scatter_plot_TSNE_after_training', plt.gcf())
