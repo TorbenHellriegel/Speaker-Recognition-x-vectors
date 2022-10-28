@@ -17,7 +17,7 @@ First you need to have the 3 datasets downloaded (plus the extra VoxCeleb test f
  - VoxCeleb (main dataset): https://github.com/clovaai/voxceleb_trainer (follow the Data preparation steps in the gits README to download the dataset)
  - MUSAN (noise augmentation): https://www.openslr.org/17/
  - RIR (noise augmentation): https://www.openslr.org/28/
- - `veri_test2.txt`: TODOLINK
+ - `veri_test2.txt`: <https://www.robots.ox.ac.uk/~vgg/data/voxceleb/meta/veri_test2.txt>
 
 All 3 datasets schould be in the same data folder. afterward you have to give the path to the dataforlder to config when it is called inside `main.py`. here you can also change other parametres for running the program like the batch size, the learning rate etc. The programm assumes the data folder structure to look like this:
 
