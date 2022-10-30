@@ -41,38 +41,55 @@ print('lowest false neg score: ', np.min(pos_scores))
 
 print('false pos')
 
+pairs = []
+num = 0
+num_pairs = []
+performance = []
 for n in range(200):
+    false_pos = np.max(neg_scores)
+    #print(false_pos)
+    index = np.where(neg_scores == false_pos)
+    #print(index)
+    speakers1 = []
+    speakers2 = []
+    for i,j in zip(index[0], index[1]):
+        speakers1.append(scores.modelset[i])
+        speakers2.append(scores.segset[j])
+        neg_scores[i,j] = 0
+    #print(speakers1)
+    #print(speakers2)
     if(n%2 == 0):
-        false_pos = np.max(neg_scores)
-        #print(false_pos)
-        index = np.where(neg_scores == false_pos)
-        #print(index)
-        speakers1 = []
-        speakers2 = []
-        for i,j in zip(index[0], index[1]):
-            speakers1.append(scores.modelset[i])
-            speakers2.append(scores.segset[j])
-            neg_scores[i,j] = 0
-        #print(speakers1)
-        #print(speakers2)
         print(n/2,' id1:',speakers1,' id2:',speakers2,' index:(',index[0],',',index[1],') LLR Score:',false_pos)
+        performance.append(false_pos)
+        pair = np.sort([int(speakers1[0].split('/')[0][2:]),int(speakers2[0].split('/')[0][2:])])
+        pair = pair[0], pair[1]
+        if(pair in pairs):
+            num_pairs.append(pairs.index(pair)+1)
+        else:
+            pairs.append(pair)
+            num += 1
+            num_pairs.append(num)
+print(pairs)
+print(num_pairs)
+print(performance)
+
 
 print('false neg')
 
 for n in range(200):
+    miss = np.min(pos_scores)
+    #print(miss)
+    index = np.where(pos_scores == miss)
+    #print(index)
+    speakers1 = []
+    speakers2 = []
+    for i,j in zip(index[0], index[1]):
+        speakers1.append(scores.modelset[i])
+        speakers2.append(scores.segset[j])
+        pos_scores[i,j] = 0
+    #print(speakers1)
+    #print(speakers2)
     if(n%2 == 0):
-        miss = np.min(pos_scores)
-        #print(miss)
-        index = np.where(pos_scores == miss)
-        #print(index)
-        speakers1 = []
-        speakers2 = []
-        for i,j in zip(index[0], index[1]):
-            speakers1.append(scores.modelset[i])
-            speakers2.append(scores.segset[j])
-            pos_scores[i,j] = 0
-        #print(speakers1)
-        #print(speakers2)
         print(n/2,' id1:',speakers1,' id2:',speakers2,' index:(',index[0],',',index[1],') LLR Score:',miss)
 
 print('done')
