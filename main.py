@@ -15,7 +15,7 @@ import plda_classifier as pc
 from config import Config
 from dataset import Dataset
 from plda_score_stat import plda_score_stat_object
-from tdnn import TdnnLayer
+from tdnn_layer import TdnnLayer
 
 
 class XVectorModel(pl.LightningModule):
@@ -175,6 +175,7 @@ if __name__ == "__main__":
 
     # Adjust parameters of model, PLDA, training etc. here
     # Set your own data folder path here!
+    # VoxCeleb MUSAN and RIR must be in the same data/ directory!
     # It is also possible to execute only select parts of the program by adjusting:
     # train_x_vector_model, extract_x_vectors, train_plda and test_plda
     # When running only later parts of the program a checkpoint_path MUST be given and
@@ -185,7 +186,9 @@ if __name__ == "__main__":
                     train_x_vector_model = False,
                     extract_x_vectors = False,
                     train_plda = False,
-                    test_plda = False)
+                    test_plda = False,
+                    x_vec_extract_layer=6,
+                    plda_rank_f=25)#TODO delete most of this
 
     # Define model and trainer
     tb_logger = pl_loggers.TensorBoardLogger(save_dir="testlogs/")
@@ -211,7 +214,8 @@ if __name__ == "__main__":
     trainer = pl.Trainer(callbacks=[early_stopping_callback, checkpoint_callback],
                         logger=tb_logger,
                         log_every_n_steps=1,
-                        accelerator='cpu',#accelerator='gpu', devices=[0],
+                        #accelerator='cpu',#TODO delete
+                        accelerator='gpu', devices=[0],
                         max_epochs=config.num_epochs)
                         #small test adjust options: fast_dev_run=True, limit_train_batches=0.0001, limit_val_batches=0.001, limit_test_batches=0.002
 
@@ -236,11 +240,11 @@ if __name__ == "__main__":
         if(config.train_x_vector_model):
             trainer.test(model)
             x_vector = pd.DataFrame(x_vector)
-            x_vector.to_csv('x_vectors/x_vector_train_v1_5.csv')
+            x_vector.to_csv('x_vectors/x_vector_train_v1_5_l7relu.csv')#TODO set to default name
         elif(config.checkpoint_path != 'none'):
             trainer.test(model, ckpt_path=config.checkpoint_path)
             x_vector = pd.DataFrame(x_vector)
-            x_vector.to_csv('x_vectors/x_vector_train_v1_5.csv')
+            x_vector.to_csv('x_vectors/x_vector_train_v1_5_l7relu.csv')#TODO set to default name
         else:
             print('could not extract train x-vectors')
 
@@ -250,19 +254,20 @@ if __name__ == "__main__":
         if(config.train_x_vector_model):
             trainer.test(model)
             x_vector = pd.DataFrame(x_vector)
-            x_vector.to_csv('x_vectors/x_vector_test_v1_5.csv')
+            x_vector.to_csv('x_vectors/x_vector_test_v1_5_l7relu.csv')#TODO set to default name
         elif(config.checkpoint_path != 'none'):
             trainer.test(model, ckpt_path=config.checkpoint_path)
             x_vector = pd.DataFrame(x_vector)
-            x_vector.to_csv('x_vectors/x_vector_test_v1_5.csv')
+            x_vector.to_csv('x_vectors/x_vector_test_v1_5_l7relu.csv')#TODO set to default name
         else:
             print('could not extract test x-vectors')
     
 
 
     if(config.train_plda):
+        print('loading x_vector data')
         # Extract the x-vectors, labels and id from the csv
-        x_vectors_train = pd.read_csv('x_vectors/x_vector_train_v1_5.csv')
+        x_vectors_train = pd.read_csv('x_vectors/i_vector_train_v2.csv')#TODO set to default name
         x_id_train = np.array(x_vectors_train.iloc[:, 1])
         x_label_train = np.array(x_vectors_train.iloc[:, 2], dtype=int)
         x_vec_train = np.array([np.array(x_vec[1:-1].split(), dtype=np.float64) for x_vec in x_vectors_train.iloc[:, 3]])
@@ -271,25 +276,46 @@ if __name__ == "__main__":
         print('generating x_vec stat objects')
         tr_stat = pc.get_train_x_vec(x_vec_train, x_label_train, x_id_train)
 
+        # # Train plda #TODO change back to ony one
+        # print('training plda')
+        # plda = pc.setup_plda(rank_f=config.plda_rank_f, nb_iter=10)
+        # plda = pc.train_plda(plda, tr_stat)
+        # pc.save_plda(plda, 'plda_v1_5_l6_d25')#TODO set to default name
+        
         # Train plda
         print('training plda')
-        plda = pc.setup_plda(rank_f=config.plda_rank_f, nb_iter=100)
+        plda = pc.setup_plda(rank_f=50, nb_iter=10)
         plda = pc.train_plda(plda, tr_stat)
-        pc.save_plda(plda, 'plda_v1_5')
+        pc.save_plda(plda, 'plda_ivec_v2_d50')
+        # Train plda
+        print('training plda')
+        plda = pc.setup_plda(rank_f=100, nb_iter=10)
+        plda = pc.train_plda(plda, tr_stat)
+        pc.save_plda(plda, 'plda_ivec_v2_d100')
+        # Train plda
+        print('training plda')
+        plda = pc.setup_plda(rank_f=150, nb_iter=10)
+        plda = pc.train_plda(plda, tr_stat)
+        pc.save_plda(plda, 'plda_ivec_v2_d150')
+        # Train plda
+        print('training plda')
+        plda = pc.setup_plda(rank_f=200, nb_iter=10)
+        plda = pc.train_plda(plda, tr_stat)
+        pc.save_plda(plda, 'plda_ivec_v2_d200')
 
 
 
     if(config.test_plda):
         # Extract the x-vectors, labels and id from the csv
         print('loading x_vector data')
-        x_vectors_test = pd.read_csv('x_vectors/x_vector_test_v1_5.csv')
+        x_vectors_test = pd.read_csv('x_vectors/i_vector_test_v2.csv')#TODO set to default name
         x_vectors_test.columns = ['index', 'id', 'label', 'xvector']
         score = plda_score_stat_object(x_vectors_test)
 
         # Test plda
         print('testing plda')
         if(not config.train_plda):
-            plda = pc.load_plda('plda/plda_v1_5.pickle')
+            plda = pc.load_plda('plda/plda_ivec_v2_d200.pickle')#TODO set to default name
         score.test_plda(plda, config.data_folder_path + '/VoxCeleb/veri_test2.txt')
 
         # Calculate EER and minDCF
@@ -299,9 +325,9 @@ if __name__ == "__main__":
         print('minDCF: ', score.min_dcf, '   threshold: ', score.min_dcf_th)
 
         # Generate images for tensorboard
-        score.plot_images(tb_logger.experiment, plda)
+        score.plot_images(tb_logger.experiment)
 
-        pc.save_plda(score, 'plda_score_v1_5')
+        pc.save_plda(score, 'plda_score_ivec_v2_d200')#TODO set to default name
 
 
 
@@ -310,13 +336,33 @@ if __name__ == "__main__":
         # train_label = np.array(x_vectors_train.iloc[:, 2], dtype=int)
         # train_xvec = np.array([np.array(x_vec[1:-1].split(), dtype=np.float64) for x_vec in x_vectors_train.iloc[:, 3]])
 
-        plda = pc.load_plda('plda/plda_v1_5.pickle')
-        score = pc.load_plda('plda/plda_score_v1_5.pickle')
-        score.plot_images(tb_logger.experiment, plda)#, train_xvec, train_label)
+        # plda = pc.load_plda('plda/plda_v1_5.pickle')
+        # score = pc.load_plda('plda/plda_score_v1_5.pickle')
+        # score.plot_images(tb_logger.experiment, plda)#, train_xvec, train_label)
+        
+        score = pc.load_plda('plda/plda_score_v1_5_l7relu_d50.pickle')
+        print('calculating EER and minDCF')
+        print('EER: ', score.eer, '   threshold: ', score.eer_th)
+        print('minDCF: ', score.min_dcf, '   threshold: ', score.min_dcf_th)
+        
+        score = pc.load_plda('plda/plda_score_v1_5_l7relu_d100.pickle')
+        print('calculating EER and minDCF')
+        print('EER: ', score.eer, '   threshold: ', score.eer_th)
+        print('minDCF: ', score.min_dcf, '   threshold: ', score.min_dcf_th)
+        
+        score = pc.load_plda('plda/plda_score_v1_5_l7relu_d150.pickle')
+        print('calculating EER and minDCF')
+        print('EER: ', score.eer, '   threshold: ', score.eer_th)
+        print('minDCF: ', score.min_dcf, '   threshold: ', score.min_dcf_th)
+        
+        score = pc.load_plda('plda/plda_score_v1_5_l7relu_d200.pickle')
+        print('calculating EER and minDCF')
+        print('EER: ', score.eer, '   threshold: ', score.eer_th)
+        print('minDCF: ', score.min_dcf, '   threshold: ', score.min_dcf_th)
 
     print('DONE')
 '''
-Notes:
+Notes: TODO remove
 
 screen commands reminder:
 -------------------------
