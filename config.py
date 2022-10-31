@@ -7,17 +7,17 @@ class Config:
                 x_vector_size=512,
                 x_vec_extract_layer=6,
                 learning_rate=0.001,
-                num_epochs=30,
+                num_epochs=20,
                 batch_norm=True,
                 dropout_p=0.0,
                 augmentations_per_sample=2,
-                plda_rank_f=150,
+                plda_rank_f=50,
                 checkpoint_path='none',
                 data_folder_path='data',
                 train_x_vector_model=True,
-                extract_x_vectors=False,
-                train_plda=False,
-                test_plda=False):
+                extract_x_vectors=True,
+                train_plda=True,
+                test_plda=True):
                 
         self.batch_size = batch_size
         self.input_size = input_size
