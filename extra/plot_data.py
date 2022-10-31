@@ -221,7 +221,7 @@ if(False):
 
     print('done')
 
-if(True):
+if(False):
     labels = [(10286, 10303), (10274, 10301), (10285, 10289), (10279, 10290), (10300, 10301), (10285, 10288), (10302, 10304), (10286, 10307), (10270, 10288), (10270, 10308), (10303, 10307), (10297, 10298), (10280, 10282), (10276, 10305), (10297, 10305), (10298, 10305), (10276, 10290), (10293, 10304), (10281, 10282)]
     num_pairs = [1, 1, 1, 2, 1, 1, 3, 1, 2, 3, 1, 2, 2, 1, 2, 3, 2, 4, 2, 5, 1, 1, 2, 2, 5, 2, 2, 3, 6, 1, 7, 3, 8, 2, 1, 1, 2, 1, 5, 1, 3, 2, 8, 1, 9, 1, 1, 3, 1, 8, 3, 10, 1, 1, 1, 1, 2, 1, 3, 1, 8, 1, 3, 1, 2, 11, 1, 3, 3, 3, 2, 1, 1, 12, 2, 5, 2, 8, 2, 1, 2, 2, 13, 14, 1, 1, 15, 14, 1, 16, 17, 8, 2, 2, 18, 14, 8, 19, 8, 11]
     scores = [27.705821411993384, 27.06155240270146, 26.690404570158073, 26.231146952337706, 25.59046231986114, 25.27378797744494, 24.8576751162702, 24.79027244517839, 24.73023401071766, 24.663622717646078, 24.535161600485942, 24.422140889130464, 24.342783065046646, 24.21828079278385, 24.002277854864197, 23.96818361438727, 23.96233057030901, 23.954883035728823, 23.84017266295163, 23.660798188249274, 23.359508612408433, 23.312426081951003, 23.174175524203932, 22.761232500399352, 22.657207612631844, 22.6534289530776, 22.49677408028876, 22.445564078001908, 22.34360070491359, 22.194878920409334, 22.181158290046543, 22.15128047036191, 22.03093675914478, 21.941824456632524, 21.86719116325947, 21.817618245094458, 21.640004423565834, 21.621708864098153, 21.527026544623524, 21.49016777594293, 21.487020736334678, 21.484317949856667, 21.471152457337105, 21.396805794776, 21.245468190680022, 20.965597638893477, 20.910562573750248, 20.894739566950825, 20.87018132601225, 20.82643461458366, 20.788735206150285, 20.76114690686577, 20.698241491287572, 20.65961983608179, 20.618075793110158, 20.583410159116227, 20.58067519020448, 20.560699672982217, 20.5365368650693, 20.467099591458584, 20.423588418792527, 20.402707115089733, 20.361296727383337, 20.323646153525125, 20.290637614417932, 20.278865692080444, 20.22161909197351, 20.2025658277199, 20.143087377119684, 19.925186541350875, 19.87105594069614, 19.78780149043257, 19.730171593029638, 19.718436555512838, 19.707233487023263, 19.6727489121931, 19.635619016121765, 19.63168358951379, 19.569183228477122, 19.558240880798124, 19.522377232545104, 19.519172663904243, 19.49284576078555, 19.473560595984427, 19.416225271692667, 19.410416528615976, 19.403025170606504, 19.387404188240975, 19.37797667291035, 19.352779189071693, 19.34339615822546, 19.31628372748908, 19.306481668603254, 19.200575804631892, 19.173743561997394, 19.171195870935186, 19.161807532026558, 19.161446555929736, 19.15642626581945, 19.15296383468037]
@@ -313,3 +313,159 @@ if(False):
     plt.close()
     print('done')
 
+if(True):
+    from pytorch_lightning import loggers as pl_loggers
+    import seaborn as sns
+    import sklearn
+    import plda_classifier as pc
+    from sklearn.manifold import TSNE
+    tb_logger = pl_loggers.TensorBoardLogger(save_dir="testlogs/")
+    writer = tb_logger.experiment
+    plt.rcParams.update({'font.size': 16})
+
+    def generate_scatter_plot(x, y, label, plot_name, small=False):
+        df = pd.DataFrame({'x': x, 'y': y, 'label': label})
+        fig, ax = plt.subplots(1, layout='constrained')
+        fig.set_size_inches(16, 12)
+        if(small):
+            sns.scatterplot(x='x', y='y', hue='label', palette=sns.color_palette("hls", 40), data=df, ax=ax, s=80) #use sns.color_palette("hls", 40) for 40 speakers
+        else:
+            sns.scatterplot(x='x', y='y', hue='label', palette='bright', data=df, ax=ax, s=80) #use sns.color_palette("hls", 40) for 40 speakers
+        limx = (x.min()-5, x.max()+5)
+        limy = (y.min()-5, y.max()+5)
+        ax.set_xlim(limx)
+        ax.set_ylim(limy)
+        ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
+        if(small):
+            ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.0, fontsize=12)
+        else:
+            ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.0)
+        ax.title.set_text(plot_name)
+
+    score = pc.load_plda('plda/plda_score_v1_5_l7relu_d50.pickle')
+        
+    split_xvec = []
+    split_label = []
+    group_kfold = sklearn.model_selection.GroupKFold(n_splits=2)
+    groups1234 = np.where(score.checked_label<10290, 0, 1)
+    for g12, g34 in group_kfold.split(score.checked_xvec, score.checked_label, groups1234):
+        x12, x34 = score.checked_xvec[g12], score.checked_xvec[g34]
+        y12, y34 = score.checked_label[g12], score.checked_label[g34]
+        groups12 = np.where(y12<10280, 0, 1)
+        groups34 = np.where(y34<10300, 0, 1)
+        for g1, g2 in group_kfold.split(x12, y12, groups12):
+            split_xvec.append(x12[g1])
+            split_xvec.append(x12[g2])
+            split_label.append(y12[g1])
+            split_label.append(y12[g2])
+            break
+        for g3, g4 in group_kfold.split(x34, y34, groups34):
+            split_xvec.append(x34[g3])
+            split_xvec.append(x34[g4])
+            split_label.append(y34[g3])
+            split_label.append(y34[g4])
+            break
+        break
+    split_xvec = np.array(split_xvec)
+    split_label = np.array(split_label)
+        
+    for i, (checked_xvec, checked_label) in enumerate(zip(split_xvec, split_label)):
+        print('xvec_scatter_plot_LDA'+str(i+1))
+        new_stat = pc.get_x_vec_stat(checked_xvec, checked_label)
+        new_stat = pc.lda(new_stat)
+        generate_scatter_plot(new_stat.stat1[:, 0], new_stat.stat1[:, 1], checked_label, 'xvec_scatter_plot_LDA'+str(i+1))
+        writer.add_figure('xvec_scatter_plot_LDA'+str(i+1), plt.gcf())
+
+        print('xvec_scatter_plot_PCA'+str(i+1))
+        pca = sklearn.decomposition.PCA(n_components=2)
+        pca_result = pca.fit_transform(sklearn.preprocessing.StandardScaler().fit_transform(checked_xvec))
+        generate_scatter_plot(pca_result[:,0], pca_result[:,1], checked_label, 'xvec_scatter_plot_PCA'+str(i+1))
+        writer.add_figure('xvec_scatter_plot_PCA'+str(i+1), plt.gcf())
+
+        print('xvec_scatter_plot_TSNE'+str(i+1))
+        tsne = TSNE(2)
+        tsne_result = tsne.fit_transform(checked_xvec)
+        generate_scatter_plot(tsne_result[:,0], tsne_result[:,1], checked_label, 'xvec_scatter_plot_TSNE'+str(i+1))
+        writer.add_figure('xvec_scatter_plot_TSNE'+str(i+1), plt.gcf())
+        
+    print('xvec_scatter_plot_LDA')
+    new_stat = pc.get_x_vec_stat(score.checked_xvec, score.checked_label)
+    new_stat = pc.lda(new_stat)
+    generate_scatter_plot(new_stat.stat1[:, 0], new_stat.stat1[:, 1], score.checked_label, 'xvec_scatter_plot_LDA', small=True)
+    writer.add_figure('xvec_scatter_plot_LDA', plt.gcf())
+
+    print('xvec_scatter_plot_PCA')
+    pca = sklearn.decomposition.PCA(n_components=2)
+    pca_result = pca.fit_transform(sklearn.preprocessing.StandardScaler().fit_transform(score.checked_xvec))
+    generate_scatter_plot(pca_result[:,0], pca_result[:,1], score.checked_label, 'xvec_scatter_plot_PCA', small=True)
+    writer.add_figure('xvec_scatter_plot_PCA', plt.gcf())
+
+    print('xvec_scatter_plot_TSNE')
+    tsne = TSNE(2)
+    tsne_result = tsne.fit_transform(score.checked_xvec)
+    generate_scatter_plot(tsne_result[:,0], tsne_result[:,1], score.checked_label, 'xvec_scatter_plot_TSNE', small=True)
+    writer.add_figure('xvec_scatter_plot_TSNE', plt.gcf())
+
+    score = pc.load_plda('plda/plda_score_ivec_v2_d200.pickle')
+        
+    split_xvec = []
+    split_label = []
+    group_kfold = sklearn.model_selection.GroupKFold(n_splits=2)
+    groups1234 = np.where(score.checked_label<10290, 0, 1)
+    for g12, g34 in group_kfold.split(score.checked_xvec, score.checked_label, groups1234):
+        x12, x34 = score.checked_xvec[g12], score.checked_xvec[g34]
+        y12, y34 = score.checked_label[g12], score.checked_label[g34]
+        groups12 = np.where(y12<10280, 0, 1)
+        groups34 = np.where(y34<10300, 0, 1)
+        for g1, g2 in group_kfold.split(x12, y12, groups12):
+            split_xvec.append(x12[g1])
+            split_xvec.append(x12[g2])
+            split_label.append(y12[g1])
+            split_label.append(y12[g2])
+            break
+        for g3, g4 in group_kfold.split(x34, y34, groups34):
+            split_xvec.append(x34[g3])
+            split_xvec.append(x34[g4])
+            split_label.append(y34[g3])
+            split_label.append(y34[g4])
+            break
+        break
+    split_xvec = np.array(split_xvec)
+    split_label = np.array(split_label)
+        
+    for i, (checked_xvec, checked_label) in enumerate(zip(split_xvec, split_label)):
+        print('ivec_scatter_plot_LDA'+str(i+1))
+        new_stat = pc.get_x_vec_stat(checked_xvec, checked_label)
+        new_stat = pc.lda(new_stat)
+        generate_scatter_plot(new_stat.stat1[:, 0], new_stat.stat1[:, 1], checked_label, 'ivec_scatter_plot_LDA'+str(i+1))
+        writer.add_figure('ivec_scatter_plot_LDA'+str(i+1), plt.gcf())
+
+        print('ivec_scatter_plot_PCA'+str(i+1))
+        pca = sklearn.decomposition.PCA(n_components=2)
+        pca_result = pca.fit_transform(sklearn.preprocessing.StandardScaler().fit_transform(checked_xvec))
+        generate_scatter_plot(pca_result[:,0], pca_result[:,1], checked_label, 'ivec_scatter_plot_PCA'+str(i+1))
+        writer.add_figure('ivec_scatter_plot_PCA'+str(i+1), plt.gcf())
+
+        print('ivec_scatter_plot_TSNE'+str(i+1))
+        tsne = TSNE(2)
+        tsne_result = tsne.fit_transform(checked_xvec)
+        generate_scatter_plot(tsne_result[:,0], tsne_result[:,1], checked_label, 'ivec_scatter_plot_TSNE'+str(i+1))
+        writer.add_figure('ivec_scatter_plot_TSNE'+str(i+1), plt.gcf())
+        
+    print('ivec_scatter_plot_LDA')
+    new_stat = pc.get_x_vec_stat(score.checked_xvec, score.checked_label)
+    new_stat = pc.lda(new_stat)
+    generate_scatter_plot(new_stat.stat1[:, 0], new_stat.stat1[:, 1], score.checked_label, 'ivec_scatter_plot_LDA', small=True)
+    writer.add_figure('ivec_scatter_plot_LDA', plt.gcf())
+
+    print('ivec_scatter_plot_PCA')
+    pca = sklearn.decomposition.PCA(n_components=2)
+    pca_result = pca.fit_transform(sklearn.preprocessing.StandardScaler().fit_transform(score.checked_xvec))
+    generate_scatter_plot(pca_result[:,0], pca_result[:,1], score.checked_label, 'ivec_scatter_plot_PCA', small=True)
+    writer.add_figure('ivec_scatter_plot_PCA', plt.gcf())
+
+    print('ivec_scatter_plot_TSNE')
+    tsne = TSNE(2)
+    tsne_result = tsne.fit_transform(score.checked_xvec)
+    generate_scatter_plot(tsne_result[:,0], tsne_result[:,1], score.checked_label, 'ivec_scatter_plot_TSNE', small=True)
+    writer.add_figure('ivec_scatter_plot_TSNE', plt.gcf())
