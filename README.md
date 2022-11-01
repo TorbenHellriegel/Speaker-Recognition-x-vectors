@@ -55,5 +55,5 @@ If you want to generate multiple different sets of x-vectors and train different
 The SpeechBrain toolkit was used in this implementation for the PLDA classifier as well as calculating the EER and DCF.
 ```
 M. Ravanelli et al. ”SpeechBrain: A general-purpose speech toolkit”.
-https://arxiv.org/abs/2106.04624, 2021. 
+<https://arxiv.org/abs/2106.04624>, 2021. 
 ```
