@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
@@ -234,6 +236,8 @@ if __name__ == "__main__":
     # Extract the x-vectors
     if(config.extract_x_vectors):
         print('extracting x-vectors')
+        if not os.path.exists('x_vectors'):
+            os.makedirs('x_vectors')
         # Extract the x-vectors for trainng the PLDA classifier and save to csv
         x_vector = []
         extract_mode = 'train'
@@ -266,6 +270,8 @@ if __name__ == "__main__":
 
     if(config.train_plda):
         print('loading x_vector data')
+        if not os.path.exists('plda'):
+            os.makedirs('plda')
         # Extract the x-vectors, labels and id from the csv
         x_vectors_train = pd.read_csv('x_vectors/i_vector_train_v2.csv')#TODO set to default name
         x_id_train = np.array(x_vectors_train.iloc[:, 1])
