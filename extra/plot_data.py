@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-if(False):
+if(True):
     tag = np.array(['train_step_acc', 'train_step_loss', 'val_step_acc', 'val_step_loss'])
     ver = np.array(['v1', 'v1_1', 'v1_2', 'v1_3', 'v1_4', 'v1_5'])
 
@@ -71,7 +71,7 @@ if(False):
     val_acc_y_full = np.concatenate(val_acc_y_full)
     val_loss_y_full = np.concatenate(val_loss_y_full)
 
-    plt.rcParams.update({'font.size': 34})
+    plt.rcParams.update({'font.size': 38})
 
     plt.figure(figsize=(16,12), layout='constrained')
     plt.plot(train_acc_x_full/783, train_acc_y_full, label='train_acc')
@@ -80,7 +80,7 @@ if(False):
     plt.ylabel('accuracy')
     plt.title("Training and Validation Accuracy")
     plt.grid(True)
-    plt.legend(fontsize=38)
+    plt.legend(fontsize=42)
     plt.savefig('train_val_acc.pdf', bbox_inches='tight')
 
     plt.figure(figsize=(16,12), layout='constrained')
@@ -90,7 +90,7 @@ if(False):
     plt.ylabel('loss')
     plt.title("Training and Validation Loss")
     plt.grid(True)
-    plt.legend(fontsize=38)
+    plt.legend(fontsize=42)
     plt.savefig('train_val_loss.pdf', bbox_inches='tight')
 
 if(False):
@@ -313,7 +313,7 @@ if(False):
     plt.close()
     print('done')
 
-if(True):
+if(False):
     from pytorch_lightning import loggers as pl_loggers
     import seaborn as sns
     import sklearn
