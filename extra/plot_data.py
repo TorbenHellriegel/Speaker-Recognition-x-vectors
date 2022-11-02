@@ -321,12 +321,12 @@ if(True):
     from sklearn.manifold import TSNE
     tb_logger = pl_loggers.TensorBoardLogger(save_dir="testlogs/")
     writer = tb_logger.experiment
-    plt.rcParams.update({'font.size': 16})
+    plt.rcParams.update({'font.size': 28})
 
     def generate_scatter_plot(x, y, label, plot_name, small=False):
         df = pd.DataFrame({'x': x, 'y': y, 'label': label})
         fig, ax = plt.subplots(1, layout='constrained')
-        fig.set_size_inches(16, 12)
+        fig.set_size_inches(15.5, 12)
         if(small):
             sns.scatterplot(x='x', y='y', hue='label', palette=sns.color_palette("hls", 40), data=df, ax=ax, s=80) #use sns.color_palette("hls", 40) for 40 speakers
         else:
@@ -337,9 +337,9 @@ if(True):
         ax.set_ylim(limy)
         ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
         if(small):
-            ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.0, fontsize=12)
+            ax.legend(bbox_to_anchor=(1.02, 1), loc=2, borderaxespad=0.0, fontsize=13)
         else:
-            ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.0)
+            ax.legend(bbox_to_anchor=(1.02, 1), loc=2, borderaxespad=0.0)
         ax.title.set_text(plot_name)
 
     score = pc.load_plda('plda/plda_score_v1_5_l7relu_d50.pickle')
