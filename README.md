@@ -13,7 +13,7 @@ This is my speaker recognition implementation based on the x-vector system descr
 
 ## How to use
 
-First you need to have the three datasets downloaded (plus the extra VoxCeleb test file):
+After cloning the repository, create a virtual environment and install all important packages with `pip install -r requirements.txt`. Then, you need to have the three datasets downloaded (plus the extra VoxCeleb test file):
  - VoxCeleb (main dataset): <https://github.com/clovaai/voxceleb_trainer> (Follow the Data preparation steps in the gits README to download the dataset.)
  - MUSAN (noise augmentation): <https://www.openslr.org/17/>
  - RIR (noise augmentation): <https://www.openslr.org/28/>
